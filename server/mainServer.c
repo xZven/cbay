@@ -18,4 +18,13 @@
 
 int main (int argc, char * argv[])
 {
+
+	// DECLARATION DES VARIABLES
+
+
+
+	// DEBUT
+	welcome_message(argc, argv);
+
+
 }
