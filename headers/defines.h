@@ -1,3 +1,4 @@
+/* Projet Cbay BALBIANI Lorrain - Manavai TEIKITUHAAHAA */
 #ifndef _HEADER_H_
 #define _HEADER_H_
 // CONSTANTES
@@ -14,10 +15,12 @@
 #define SUCCESS 0
 #define FAIL 1
 
-int debug;
+// VARIABLES GLOBAL
+int debug; 						// Utilisé pour le mode debug
+
 // TYPEDEF
-typedef time_t unique_id_t; //UNIQUE ID
-typedef int fd_t; //DESCRIPTEUR DE FICHIER
-typedef int bool;
+typedef time_t unique_id_t; 	// UNIQUE ID
+typedef int fd_t; 				// DESCRIPTEUR DE FICHIER
+typedef int bool;				// TYPE BOOLEAN
 
 #endif
