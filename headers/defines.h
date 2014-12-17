@@ -1,4 +1,3 @@
-/* Projet Cbay BALBIANI Lorrain - Manavai TEIKITUHAAHAA */
 #ifndef _HEADER_H_
 #define _HEADER_H_
 // CONSTANTES
@@ -24,3 +23,5 @@ typedef int fd_t; 				// DESCRIPTEUR DE FICHIER
 typedef int bool;				// TYPE BOOLEAN
 
 #endif
+
+/* Projet Cbay BALBIANI Lorrain - Manavai TEIKITUHAAHAA */

@@ -11,9 +11,13 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdio_ext.h>
+#include <signal.h>
 
-#include "./headers *.h" // WAR
-#include "./fonctions/*.*" // WAR
+#include "../headers/defines.h"
+#include "../headers/struct.h"
+
+#include "./fonctions/server_f.c"
+
 
 
 int main (int argc, char * argv[])
@@ -23,7 +27,7 @@ int main (int argc, char * argv[])
 	
 
 	struct server_t server;
-	char buffer[1024]; buffer='\0';
+	char buffer[1024]; buffer[0]='\0';
 	
 	/* variables liées au socket */
 	int socklis;	
@@ -40,6 +44,7 @@ int main (int argc, char * argv[])
 //DEBUT
 
 	welcome_message(argc, argv);
+	//signal(SIGINT, shut_server(&server));
 
 	//CHARGEMENT DES PARAMETRES
 	fprintf(stdout, "[INFOS]: Chargement des paramètres du serveurs\n");
@@ -50,6 +55,8 @@ int main (int argc, char * argv[])
 	//PREPARATION DES CONNEXIONS
 	init_socket(&socklis, &nom_server, &server);
 	
+	while(1)
+{
 	//ATTENTE DE CONNEXION D'UN CLIENT	
 	if(listen(socklis, 1) == -1)
 	{
@@ -67,4 +74,9 @@ int main (int argc, char * argv[])
 		exit(-1);
 	 }
 	fprintf(stdout, "*** CONNECTED TO CLIENT ***\n");
+}
+	
+	
+	shut_server(&server);
+	exit(0);
 }	

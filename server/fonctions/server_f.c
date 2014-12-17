@@ -1,8 +1,4 @@
 /* Projet Cbay BALBIANI Lorrain - Manavai TEIKITUHAAHAA */
-#include "../headers/struct.h"
-#include "../headers/error.h"
-#include "../headers/define.h"
-#include "../headers/code_message.h"
 
 /*
  * Cette fonction sert à afficher un message d'acceuil et à 
@@ -12,7 +8,9 @@ void welcome_message(int argc, char * argv[])
 {
 	int index = 0;
 
-	printf("\nBienvenue sur Cbay, Application serveur!\n");
+	printf("\n\n\n\t----------------------------------------\n");
+	printf("\tBienvenue sur Cbay, Application serveur!\n");
+	printf("\t----------------------------------------\n\n\n");
 	if(argc > 1)
 		{
 			fprintf(stdout, "[WAR]: Arguments in the launching command...\n");
@@ -54,7 +52,7 @@ void load_server(struct server_t * server)
 
 	
 	if(debug) fprintf(stdout, "[DEBUG]: fopen: Fichier de configuration\n"); //DEBUG
-	config_file = fopen("./server.conf", "r"); // ouverture du fichier de configuration du serveur
+	config_file = fopen("./conf/server.conf", "r"); // ouverture du fichier de configuration du serveur
 	if(config_file == NULL)
 	{
 		fprintf(stderr, "[ERROR]: %s\n\nExiting...\n", strerror(errno));
@@ -167,7 +165,7 @@ void init_socket(int * socklis, struct sockaddr_in * nom_server, struct server_t
 		fprintf(stderr,"[ERROR]: bind(): %s\nExiting...\n", strerror(errno));
 		exit(-1);
 	}
-	 fprintf(stdout, "[DEBUG]: bind() OK\n");
+	if(debug) fprintf(stdout, "[DEBUG]: bind() OK\n");
   	 
 }
 
@@ -183,9 +181,11 @@ int rcv_socket(struct user_t * client, char * buffer)
 	return SUCCESS;
 }
 
-void close_file(struct server_t * server)
+__sighandler_t shut_server(struct server_t * server)
 {
 	fclose(server->auth_file); if(debug) fprintf(stdout, "[DEBUG]: fclose (auth_file) reussi\n");
 	fclose(server->object_file); if(debug) fprintf(stdout, "[DEBUG]: fclose (object_file) reussi\n");
 	fclose(server->log_file); if(debug) fprintf(stdout, "[DEBUG]: fclose (log_file) reussi\n");
+	
+	exit(0);
 }

@@ -1,7 +1,7 @@
-#ifndef _HEADER_H_
-#define _HEADER_H_
+/* Projet Cbay BALBIANI Lorrain - Manavai TEIKITUHAAHAA */
 
-struct user_t 				// STRUCTURE DEFINISSANT UN UTILISATEUR 
+// STRUCTURE DEFINISSANT UN UTILISATEUR 
+struct user_t 				
 {
 	unique_id_t uid; 		// IDENTIFIANT UNIQUE
 	char login[21];			// NOM D'UTILISATEUR
@@ -12,7 +12,8 @@ struct user_t 				// STRUCTURE DEFINISSANT UN UTILISATEUR
 	fd_t socket_fd;			// DESCRIPTEUR DE FICHIER DU SOCKET DE COMMUNICATION
 };
 
-struct object_t 			// STRUCTURE DEFINISSANT UN OBJET DES ECNHERES
+// STRUCTURE DEFINISSANT UN OBJET DES ECNHERES
+struct object_t 			
 {
 	unique_id_t uid;		// IDENTIFIANT UNIQUE DE L ITEM
 	char name[51];			// NOM DE L'OBJET (à l'unité) exemple: pour un lot de XXX: "XXX"
@@ -28,7 +29,8 @@ struct object_t 			// STRUCTURE DEFINISSANT UN OBJET DES ECNHERES
 	unique_id_t acheteur;	// UID DE L'ACHETEUR (initialisé à 0 / mis à 0 lors de la suppresion d'un utilisateur lros d'un enchère)
 };
 
-struct server_t				// STRUCTURE REGROUPANT TOUS LES PARAMETRES DU SERVEUR
+// STRUCTURE REGROUPANT TOUS LES PARAMETRES DU SERVEUR
+struct server_t				
 {
 	char server_name[51];	// NOM DU SERVEUR
 	int port_number;		// NUMERO DE PORT
@@ -37,4 +39,3 @@ struct server_t				// STRUCTURE REGROUPANT TOUS LES PARAMETRES DU SERVEUR
 	FILE * log_file;		// POINTEUR VERS LE FICHIER DES LOGS DES ACHATS ET DES VENTES 
 };							// CES PARAMETRES SONT CHANGEABLE DANS LE FICHIER DE CONF DU SERVEUR
 
-#endif
