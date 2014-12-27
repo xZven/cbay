@@ -1,6 +1,7 @@
 /* PROTOTYPES */
 void welcome_message(int argc, char * argv[]);
-int ask_login(struct user_t * client,  char * buffer);
+void clean_b(char * buffer);
+int req_verify_login(struct user_t * client,  char * buffer);
 
 //
 
@@ -31,7 +32,7 @@ void clean_b(char * buffer)
 	buffer[0]='\0';
 }
 
-int ask_login(struct user_t * client, char * buffer)
+int req_verify_login(struct user_t * client, char * buffer)
 {
 
 	do

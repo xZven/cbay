@@ -7,6 +7,7 @@ struct user_t
 	char login[21];			// NOM D'UTILISATEUR
 	char password[21];		// MOT DE PASSE
 	bool admin;				// MODE (TRUE or FALSE)
+	char mode;				// MODE DE CONNEXION (a, b ou s)
 	time_t last_connect;	// HEURE DE LA DERNIERE CONNEXION (format seconde)
 	//IP					// DERNIERE ADDRESSE IP DE CONNEXION
 	fd_t socket_fd;			// DESCRIPTEUR DE FICHIER DU SOCKET DE COMMUNICATION
@@ -39,3 +40,24 @@ struct server_t
 	FILE * log_file;		// POINTEUR VERS LE FICHIER DES LOGS DES ACHATS ET DES VENTES 
 };							// CES PARAMETRES SONT CHANGEABLE DANS LE FICHIER DE CONF DU SERVEUR
 
+struct log_t
+{
+	unique_id_t item_uid;	// IDENTIFIANT UNIQUE DE L'ITEM
+	unique_id_t seller_uid;	// IDENTIFIANT UNIQUE DU VENDEUR
+	unique_id_t buyer_uid;	// IDENTIFIANT UNIQUE DE L'ACHETEUR
+	char event;				// EVENEMENT
+	time_t date;			// DATE DE L'EVENEMENT
+};
+
+/* EVENEMENT POSSIBLE */
+/*
+ *  i 		inscription
+ *	c		connection	// connection d'un utilisateur
+ *	b		bid 		// mise au enchère
+ *	l		canceL		// annulation d'une enchère
+ *	d		delete		// suppresion d'un item
+ *
+ *
+ *
+ *
+ */

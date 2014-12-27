@@ -10,14 +10,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdio_ext.h>
-//
+
 #include "../headers/defines.h"
 #include "../headers/struct.h"
 #include "./fonctionClient.c"
-
-
-//
-
 
 int main(int argc, char * argv[]) 
 {

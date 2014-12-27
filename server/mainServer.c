@@ -17,6 +17,9 @@
 #include "../headers/struct.h"
 
 #include "./fonctions/server_f.c"
+#include "./fonctions/log_f.c"
+#include "./fonctions/req_f.c"
+
 
 
 
@@ -44,7 +47,6 @@ int main (int argc, char * argv[])
 //DEBUT
 
 	welcome_message(argc, argv);
-	//signal(SIGINT, shut_server(&server));
 
 	//CHARGEMENT DES PARAMETRES
 	fprintf(stdout, "[INFOS]: Chargement des paramètres du serveurs\n");
@@ -74,6 +76,30 @@ int main (int argc, char * argv[])
 		exit(-1);
 	 }
 	fprintf(stdout, "*** CONNECTED TO CLIENT ***\n");
+	
+	while(client.socket_fd > 0) // TANT QUE LE CLIENT EST CONNECTE
+	{
+		clean_b(buffer);	
+		do
+		{
+			size_recv = recv(client.socket_fd, buffer, sizeof(buffer), MSG_DONTWAIT);
+			usleep(10000); //PAUSE DE 10 mS	
+		}while(size_recv == -1);		
+		if(debug) fprintf(stdout, "[DEBUG]: Buffer: %s\n", buffer);
+
+		if(strncmp(buffer, "REQ_VERIFY_LOGIN", 13) == 0)	//passro
+		{
+			req_verify_login(&client, &server, buffer);
+		}
+		else if(strncmp(buffer, "REQ_NEW_USER", 12) == 0) 	// 
+		{
+			req_new_user(&client, &server, buffer);
+		}
+		else if(strncmp(buffer, "REQ_CONNECT", 14) == 0) 	// 
+		{
+			req_connect(&client, &server, buffer);
+		}
+	}
 }
 	
 	

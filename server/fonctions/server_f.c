@@ -8,9 +8,10 @@ void welcome_message(int argc, char * argv[])
 {
 	int index = 0;
 
-	printf("\n\n\n\t----------------------------------------\n");
+	printf("\n\n\n\t----------------------------------------");
+	printf("\n BALBIANI.L				     TEIKITUHAAHAA.M\n\n");
 	printf("\tBienvenue sur Cbay, Application serveur!\n");
-	printf("\t----------------------------------------\n\n\n");
+	printf("\t----------------------------------------\n");
 	if(argc > 1)
 		{
 			fprintf(stdout, "[WAR]: Arguments in the launching command...\n");
@@ -40,7 +41,7 @@ void clean_b(char * buffer)
  * Cette fonction sert à charger les paramètres du serveur
  * à partir du fichier de configuration.
  */
- 
+ /* Projet Cbay BALBIANI Lorrain - Manavai TEIKITUHAAHAA */
 void load_server(struct server_t * server)
 {
 	int index = 1; // affichage du numéro de ligne
@@ -181,11 +182,135 @@ int rcv_socket(struct user_t * client, char * buffer)
 	return SUCCESS;
 }
 
-__sighandler_t shut_server(struct server_t * server)
+bool send_socket(struct user_t * client, const char * buffer)
+{
+	send(client->socket_fd, buffer, strlen(buffer) + 1, MSG_CONFIRM);
+	return SUCCESS;
+}
+
+bool error_msg(struct user_t * client, const char * error_code)
+{
+	char buffer[20];
+	
+	sprintf(buffer, "ERROR = %s\n", error_code);
+	send_socket(client, buffer);
+	return SUCCESS;
+}
+
+void shut_server(struct server_t * server)
 {
 	fclose(server->auth_file); if(debug) fprintf(stdout, "[DEBUG]: fclose (auth_file) reussi\n");
 	fclose(server->object_file); if(debug) fprintf(stdout, "[DEBUG]: fclose (object_file) reussi\n");
 	fclose(server->log_file); if(debug) fprintf(stdout, "[DEBUG]: fclose (log_file) reussi\n");
 	
 	exit(0);
+
+}
+
+bool decode_user(struct user_t * client, char * ligne)
+{
+	int n;
+	
+	n = sscanf(ligne, "%ld %s %s %d %ld\n", &client->uid, client->login, client->password, &client->admin, &client->last_connect);
+	if(n == 5)  // OK
+		return TRUE;
+	else		// !OK
+		return FALSE; 
+		
+}
+
+bool encode_user(struct user_t * client, char * ligne)
+{ 
+	int n;
+	
+	n = sprintf(ligne, "%ld %s %s %d %ld", client->uid, client->login, client->password, client->admin, client->last_connect);
+	if(n == 5)  // OK
+		return TRUE;
+	else		// !OK
+		return FALSE; 
+}
+
+bool decode_item(struct user_t * client, struct object_t * item, char * ligne)
+{
+	int n;
+	
+	n = sscanf(ligne, "%ld %s %s %s %s %f %f %f %d %s %ld %ld\n", 
+	&item->uid, 
+	item->name, 
+	item->category, 
+	item->description, 
+	item->url_image, 
+	&item->start_price, 
+	&item->temp_price, 
+	&item->final_price,		
+	&item->quantity,			
+	item->place,       
+	&item->vendeur,
+	&item->acheteur);
+	
+	if(n == 12)  // OK
+		return TRUE;
+	else		// !OK
+		return FALSE; 
+}
+
+bool encode_item(struct user_t * client, struct object_t * item, char * ligne)
+{
+	int n;
+	
+	n = sprintf(ligne, "%ld %s %s %s %s %f %f %f %d %s %ld %ld", 
+	item->uid, 
+	item->name, 
+	item->category, 
+	item->description, 
+	item->url_image, 
+	item->start_price, 
+	item->temp_price, 
+	item->final_price,		
+	item->quantity,			
+	item->place,       
+	item->vendeur,
+	item->acheteur);
+	
+	if(n == 12)  // OK
+		return TRUE;
+	else		// !OK
+		return FALSE; 
+}
+
+bool decode_log(struct user_t * client, struct log_t * event, struct server_t * server, char * ligne)
+{
+	int n;
+	
+	n = sscanf(ligne, "%ld %ld %ld %c %ld\n",
+		&event->item_uid,
+		&event->seller_uid,	
+		&event->buyer_uid,
+		&event->event,
+		&event->date);
+		
+	if(n == 5)  // OK
+		return TRUE;
+	else		// !OK
+		return FALSE; 
+}
+
+bool encode_log(struct log_t * event, struct server_t * server)
+{
+	int n;
+	char ligne[256];
+	
+	n = sprintf(ligne, "%ld %ld %ld %c %ld\n",
+		event->item_uid,
+		event->seller_uid,	
+		event->buyer_uid,
+		event->event,
+		event->date);
+	
+	fseek(server->log_file, 0, SEEK_END); // DEPALCEMENT DU CURSEUR en fin de fichier
+	fprintf(server->log_file, "%s\n",ligne);
+	fseek(server->log_file, 0, SEEK_SET);
+	
+	return TRUE;
+	
 }
