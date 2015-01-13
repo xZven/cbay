@@ -232,10 +232,19 @@ state req_new_pw(struct user_t * client, struct server_t * server, char * buffer
 
 state req_del_user(struct user_t * client, struct server_t * server, char * buffer)
 {
-	char new_pw[20];
 	unique_id_t client_uid;
 	char client_del_login[20];
 	char ligne[128];
+	size_t size_l = 0;
+	
+	int fd;
+	
+	if(pipe(&fd) == -1)
+	{
+		fprintf(stderr,"[ERROR]: Erreur creation d'un pipe (req_del_user): %s\n", strerror(errno));
+		error_msg(client, "0x999");
+		return FAIL;
+	}
 	
 	sscanf(buffer,"REQ_DEL_USER = %s BY %ld \n", client_del_login, &client_uid);
 	clean_b(buffer);
@@ -244,27 +253,115 @@ state req_del_user(struct user_t * client, struct server_t * server, char * buff
 	{
 		while(fgets(ligne, sizeof(ligne), server->auth_file) != NULL)
 		{
-			if(decode_user(&temp_client, ligne) == FAIL)
+			if(strcmp(client_del_login, ligne) <= 0) // SI CE N'EST PAS LA LIGNE A IGNOREE
 			{
-				fprintf(stderr,"[ERROR]: Erreur modification de mot de passe: %s\n", strerror(errno));
-				error_msg(client, "0x999");
-				return FAIL;
+				size_l = strlen(ligne);
+				write(fd, ligne, size_l);
+			}
+			else
+			{
+				// NE RIEN FAIRE
 			}
 		}
+		
+		// RECOPIE DU NOUVEAU FICHIER
+		system("echo > auth_file.bin");
+		lseek(fd, 0, SEEK_SET);
+		while(read(fd, ligne, size_l) != 0)
+		{
+			fputs(ligne, server->auth_file);
+		}		
 	}
 	else
 	{
-	]
+		error_msg(client, "0x042");
+		return FAIL;
+	}
+	return SUCCESS;
+}
+
+state req_all_item(struct user_t * client, struct server_t * server, char * buffer)
+{
+	
+	struct object_t temp_item;
+	unique_id_t client_uid;
+	char ligne[256];
+	
+	
+	sscanf(buffer,"REQ_DEL_USER BY %ld \n", &client_uid);
+	clean_b(buffer);
+	
+	if(client_uid == client->uid) 							 // IF ADMIN
+	{
+		fseek(server->object_file, 0, SEEK_SET);
+		
+		while(fgets(ligne, sizeof(ligne), server->auth_file)) // GET EACH LINE
+		{
+			decode_item(client, &temp_item, ligne);			 // DECODE LINE
+			
+			sprintf(buffer, "ITEM = %ld %s %s %f %f %d \n" , 
+				temp_item.uid,
+				temp_item.name,
+				temp_item.category,
+				temp_item.start_price,
+				temp_item.temp_price,
+				temp_item.quantity);						 // FORMAT
+			
+			send_socket(client, buffer);					 // SEND
+			
+			clean_b(buffer);								 // CLEAN BUFFER
+			
+		}
+	}
+	else													 // IF NOT ADMIN
+	{
+		error_msg(client, "0x042");
+		return FAIL;
+	}
+	
+	sprintf(buffer, "END_ITEM \n");
+	send_socket(client, buffer);					 		 // SEND
+	clean_b(buffer);								 	 	 // CLEAN BUFFER
+	fseek(server->object_file, 0, SEEK_SET);				 // RESET FILE
+	return SUCCESS;
+}
+
+
+state req_op(struct user_t * client, struct server_t * server, char * buffer)
+{
+	char op[10];
+	unique_id_t item_uid;
+	struct object_t temp_item;
+	
+	sscanf(buffer,"REQ_OP = %s ON %ld \n", op, &item_uid);
+	clean_b(buffer);
+	
+	fseek(server->object_file, 0, SEEK_SET);				 // RESET FILE
+	
+	if(strcmp(op, "DELETE") ==0)							 // IF DELETE BID
+	{
+		
+	}
+	else if(strcmp(op, "CANCEL") ==0)						 // IF RESET BID
+	{
+		while(fgets(ligne, sizeof(ligne), server->auth_file) // GET ITEM LINE
+		{
+			decode_item(client, &temp_item, ligne);			 // DECODE LINE
+			if(temp_item.uid == item_uid)
+			{
+				temp_item.temp_price = 0;
+				encode(client, &temp_item, ligne);
+				fseek(server->object_file, -strlen(ligne), SEEK_SET);
+				
+				break;
+			}
+			
+		}
+	}
+	else													 // IF ELSE
 }
 
 /*
-bool req_all_item(struct user_t * client, struct server_t * server, char * buffer)
-{
-}
-
-bool req_op(struct user_t * client, struct server_t * server, char * buffer)
-{
-}
 
 bool req_item_sold(struct user_t * client, struct server_t * server, char * buffer)
 {
