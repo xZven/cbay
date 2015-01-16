@@ -631,11 +631,12 @@ state req_hist_item_bought(struct user_t * client, struct server_t * server, cha
 	return FAIL;
 }
 
-/*state req_bid_user(struct user_t * client, struct server_t * server, char * buffer)
+///////////////////******************///////////////
+state req_bid_user(struct user_t * client, struct server_t * server, char * buffer)
 {
-	
+	clean_b(buffer);
+	return SUCCESS;
 }
-}*/
 state req_cat(struct user_t * client, struct server_t * server, char * buffer)
 {
 	int tabex = 0;
@@ -740,7 +741,7 @@ state req_cat_access(struct user_t * client, struct server_t * server, char * bu
  }
  
  
-state req_tiem(struct user_t * client, struct server_t * server, char * buffer)
+state req_item(struct user_t * client, struct server_t * server, char * buffer)
  {
 	unique_id_t item_uid = 0;
 	char ligne[256];
