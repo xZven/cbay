@@ -9,9 +9,12 @@ void welcome_message(int argc, char * argv[])
 	int index = 0;
 
 	printf("\n\n\n\t----------------------------------------");
-	printf("\n BALBIANI.L				     TEIKITUHAAHAA.M\n\n");
-	printf("\tBienvenue sur Cbay, Application serveur!\n");
+	printf("\n\tBALBIANI.L		 TEIKITUHAAHAA.M\n");
+	printf("\n\tUPSSITECH		            STRI\n");
 	printf("\t----------------------------------------\n");
+	
+	printf("\n\tBienvenue sur Cbay, Application serveur!\n\n");
+	
 	if(argc > 1)
 		{
 			fprintf(stdout, "[WAR]: Arguments in the launching command...\n");
@@ -133,11 +136,14 @@ void load_server(struct server_t * server)
  */
 void screen_server(struct server_t server)
 {
-	fprintf(stdout, "Nom du serveur: %s;\n", server.server_name); 
-	fprintf(stdout, "Numéro de port: %d;\n", server.port_number);
-	fprintf(stdout, "Fichier d'authentification: %p;\n", server.auth_file);
-	fprintf(stdout, "Fichier des objets aux enchère: %p;\n", server.object_file);
-	fprintf(stdout, "Fichier des logs des achats et des ventes: %p;\n\n\n", server.log_file);
+	fprintf(stdout, "|--------------------PARAMETRES----------------------|\n");
+	fprintf(stdout, " Nom du serveur: %s;\n", server.server_name); 
+	fprintf(stdout, " Numéro de port: %d;\n", server.port_number);
+	fprintf(stdout, " Fichier d'authentification: %p;\n", server.auth_file);
+	fprintf(stdout, " Fichier des objets aux enchère: %p;\n", server.object_file);
+	fprintf(stdout, " Fichier des logs des achats et des ventes: %p;\n", server.log_file);
+	fprintf(stdout, "|----------------------------------------------------|\n\n\n");
+
 }
 
 /*
@@ -193,6 +199,7 @@ bool error_msg(struct user_t * client, const char * error_code)
 	char buffer[20];
 	
 	sprintf(buffer, "ERROR = %s\n", error_code);
+	printf("%s \n", error_code);
 	send_socket(client, buffer);
 	return SUCCESS;
 }

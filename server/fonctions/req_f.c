@@ -7,10 +7,15 @@ state req_verify_login(struct user_t * client, struct server_t * server, char * 
 	char ligne[512];
 	struct user_t temp_chck;
 	
-	fseek(server->auth_file, 0, SEEK_SET); // deplacement du curseur en début de fichier.
-	
-	sscanf(buffer,"REQ_VERIFY_LOGIN = %s\n", client->login);
+	if(sscanf(buffer,"REQ_VERIFY_LOGIN = %s\n", client->login) != 1)
+	{
+		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
+		error_msg(client, "0x999");
+		return FAIL;
+	}
 	clean_b(buffer);
+	
+	fseek(server->auth_file, 0, SEEK_SET); // deplacement du curseur en début de fichier.
 	
 	while(fgets(ligne, sizeof(ligne), server->auth_file) != NULL)
 	{
@@ -41,10 +46,18 @@ state req_verify_login(struct user_t * client, struct server_t * server, char * 
 
 state req_new_user(struct user_t * client,  struct server_t * server, char * buffer)
 {
-	char ligne[1024];
+	char ligne[1024];	
+	
+	if(sscanf(buffer,"REQ_NEW_USER = %s + %s \n", client->login, client->password) != 2)
+	{
+		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
+		error_msg(client, "0x999");
+		return FAIL;
+	}
+	
+	clean_b(buffer);
 	
 	time(&client->uid);						// ATTRIBUTION UID
-	sscanf(buffer,"REQ_NEW_USER = %s + %s \n", client->login, client->password);
 	client->admin = -1; 					// MODE INDERTERMINEE
 	client->last_connect = 0;				// PAS DE PREMIERE CONNEXION	
 	encode_user(client, ligne);	clean_b(buffer);	
@@ -58,7 +71,7 @@ state req_new_user(struct user_t * client,  struct server_t * server, char * buf
 	}
 	
 	log_inscription(client, server);
-	fseek(server->auth_file, 0, SEEK_SET); // deplacement du curseur en debut de fichier
+	fseek(server->auth_file, 0, SEEK_SET); // RESET FILE
 	return SUCCESS;
 }
 
@@ -66,8 +79,15 @@ state req_connect(struct user_t * client,  struct server_t * server, char * buff
 {
 	char ligne[512];
 	struct user_t temp_chck;
+	
 
-	sscanf(buffer,"REQ_CONNECT = %s + %s \n", client->login, client->password);
+	if(sscanf(buffer,"REQ_CONNECT = %s + %s \n", client->login, client->password) != 2)
+	{
+		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
+		error_msg(client, "0x999");
+		return FAIL;
+	}
+	clean_b(buffer);
 	fseek(server->auth_file, 0, SEEK_SET); // deplacement du curseur en debut de fichier
 	
 	while(fgets(ligne, sizeof(ligne), server->auth_file) != NULL)
@@ -115,7 +135,12 @@ state req_mode(struct user_t * client, struct server_t * server, char * buffer)
 	char mode[10];
 	unique_id_t client_uid;
 	
-	sscanf(buffer,"REQ_MODE = %s FOR %ld \n", mode, &client_uid);
+	if(sscanf(buffer,"REQ_MODE = %s FOR %ld \n", mode, &client_uid) != 2);
+	{
+		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
+		error_msg(client, "0x999");
+		return FAIL;
+	}
 	clean_b(buffer);
 	
 	if(client_uid == client->uid)
@@ -174,7 +199,12 @@ state req_new_pw(struct user_t * client, struct server_t * server, char * buffer
 	struct user_t temp_client;
 	char ligne[128];
 	
-	sscanf(buffer,"REQ_NEW_PW = %s ON %s BY %ld \n", new_pw, client_login, &client_uid);
+	if(sscanf(buffer,"REQ_NEW_PW = %s ON %s BY %ld \n", new_pw, client_login, &client_uid) != 3);
+	{
+		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
+		error_msg(client, "0x999");
+		return FAIL;
+	}
 	clean_b(buffer);
 	
 		if(client_uid == client->uid && client->admin == TRUE)
@@ -237,7 +267,15 @@ state req_del_user(struct user_t * client, struct server_t * server, char * buff
 	char ligne[128];
 	size_t size_l = 0;
 	
-	int fd;
+	fd_t fd;
+	
+	if(sscanf(buffer,"REQ_DEL_USER = %s BY %ld \n", client_del_login, &client_uid) != 3)
+	{
+		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
+		error_msg(client, "0x999");
+		return FAIL;
+	}
+	clean_b(buffer);
 	
 	if(pipe(&fd) == -1)
 	{
@@ -245,10 +283,7 @@ state req_del_user(struct user_t * client, struct server_t * server, char * buff
 		error_msg(client, "0x999");
 		return FAIL;
 	}
-	
-	sscanf(buffer,"REQ_DEL_USER = %s BY %ld \n", client_del_login, &client_uid);
-	clean_b(buffer);
-	
+		
 	if(client_uid == client_uid && client->admin == TRUE)
 	{
 		while(fgets(ligne, sizeof(ligne), server->auth_file) != NULL)
@@ -288,14 +323,19 @@ state req_all_item(struct user_t * client, struct server_t * server, char * buff
 	char ligne[256];
 	
 	
-	sscanf(buffer,"REQ_DEL_USER BY %ld \n", &client_uid);
+	if(sscanf(buffer,"REQ_DEL_USER BY %ld \n", &client_uid) != 1)
+	{
+		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
+		error_msg(client, "0x999");
+		return FAIL;
+	}
 	clean_b(buffer);
 	
 	if(client_uid == client->uid) 							 // IF ADMIN
 	{
 		fseek(server->object_file, 0, SEEK_SET);
 		
-		while(fgets(ligne, sizeof(ligne), server->auth_file)) // GET EACH LINE
+		while(fgets(ligne, sizeof(ligne), server->object_file)) // GET EACH LINE
 		{
 			decode_item(client, &temp_item, ligne);			 // DECODE LINE
 			
@@ -326,73 +366,480 @@ state req_all_item(struct user_t * client, struct server_t * server, char * buff
 	return SUCCESS;
 }
 
-
 state req_op(struct user_t * client, struct server_t * server, char * buffer)
-{
+{ // LOG A FAIRE
 	char op[10];
+	char ligne[256];
+	struct object_t temp_item;
 	unique_id_t item_uid;
+	size_t size_l = 0;
+	fd_t fd;
+	
+	if(sscanf(buffer,"REQ_OP = %s ON %ld \n", op, &item_uid) != 2)
+	{
+		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
+		error_msg(client, "0x999");
+		return FAIL;
+	}
+	clean_b(buffer);
+	
+	if(pipe(&fd) == -1)
+	{
+		fprintf(stderr,"[ERROR]: Erreur creation d'un pipe (req_del_user): %s\n", strerror(errno));
+		error_msg(client, "0x999");
+		return FAIL;
+	}
+	
+	fseek(server->object_file, 0, SEEK_SET);				 // RESET FILE
+	
+	while(fgets(ligne, sizeof(ligne), server->object_file)) 	 // GET ITEM LINE
+	{
+		decode_item(client, &temp_item, ligne);			 	 // DECODE LINE
+		if(temp_item.uid == item_uid)					 	 // IF ITEM FOUND
+		{
+			if(strcmp(op, "DELETE") ==0)				 	 // IF DELETE BID DO NOTHING
+			{
+	
+			}
+			else if(strcmp(op, "CANCEL") ==0)			 	 // IF RESET BID  DELETE TEMP_PRICE
+			{	
+				temp_item.temp_price = 0;
+				encode_item(client, &temp_item, ligne);					
+				size_l = strlen(ligne);
+				write(fd, ligne, size_l);
+			}
+			else										 	 // IF ELSE
+			{
+				//	NOTHING
+			}
+		}
+		size_l = strlen(ligne);
+		write(fd, ligne, size_l);	
+	}
+	
+	
+	// RECOPIE DU NOUVEAU FICHIER
+	system("echo > object_file.bin");						// DELETE CONTAIN
+	lseek(fd, 0, SEEK_SET);
+	while(read(fd, ligne, size_l) != 0)
+	{
+		fputs(ligne, server->object_file);
+	}
+	
+	fseek(server->object_file, 0, SEEK_SET);				 // RESET FILE
+	close(fd);
+	
+	return SUCCESS;
+	
+}
+
+state req_item_sold(struct user_t * client, struct server_t * server, char * buffer)
+{
+	struct object_t temp_item;
+	char user[20];
+	char ligne[256];
+	
+	
+	if(sscanf(buffer,"REQ_ITEM_SOLD = %s \n", user) != 1)
+	{
+		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
+		error_msg(client, "0x999");
+		return FAIL;
+	}
+	clean_b(buffer);
+	
+	fseek(server->object_file, 0, SEEK_SET);
+	
+	if(strcmp(user,client->login) == 0)						  // CHECKING USERNAME
+	{
+		
+		while(fgets(ligne, sizeof(ligne), server->object_file)) // GET EACH LINE
+		{
+			decode_item(client, &temp_item, ligne);			  // DECODE LINE
+			
+			if((temp_item.vendeur == client->uid) && (temp_item.final_price > 0))			  // IF CLIENT -> ITEM
+			{
+				sprintf(buffer, "ITEM = %ld %s %s %f %f %f %d \n" , 
+				temp_item.uid,
+				temp_item.name,
+				temp_item.category,
+				temp_item.start_price,
+				temp_item.temp_price,
+				temp_item.final_price,
+				temp_item.quantity);						 // FORMAT
+			
+			send_socket(client, buffer);					 // SEND			
+			clean_b(buffer);								 // CLEAN BUFFER
+			
+			}
+		}
+		
+		sprintf(buffer, "END_ITEM \n");
+		send_socket(client, buffer);					 		 // SEND
+		clean_b(buffer);								 	 	 // CLEAN BUFFER
+		fseek(server->object_file, 0, SEEK_SET);				 // RESET FILE
+		return SUCCESS;
+	}
+	
+	error_msg(client, "0x062");
+	return FAIL;
+	
+}
+
+state req_item_user(struct user_t * client, struct server_t * server, char * buffer)
+{
+	
+	struct object_t temp_item;
+	unique_id_t user_uid;
+	char ligne[256];
+	
+	
+	if(sscanf(buffer,"REQ_ITEM_USER = %ld \n", &user_uid) != 1)
+	{
+		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
+		error_msg(client, "0x999");
+		return FAIL;
+	}
+	clean_b(buffer);
+	
+	fseek(server->object_file, 0, SEEK_SET);
+	
+	if(user_uid == client->uid)						  // CHECKING USERNAME
+	{
+		
+		while(fgets(ligne, sizeof(ligne), server->object_file)) // GET EACH LINE
+		{
+			decode_item(client, &temp_item, ligne);			  // DECODE LINE
+			
+			if((temp_item.vendeur == client->uid) && ((temp_item.final_price <= 0)	&&	(temp_item.temp_price > 0)))  // IF CLIENT -> ITEM
+			{
+				sprintf(buffer, "ITEM = %ld %s %s %f %f %f %d \n" , 
+				temp_item.uid,
+				temp_item.name,
+				temp_item.category,
+				temp_item.start_price,
+				temp_item.temp_price,
+				temp_item.final_price,
+				temp_item.quantity);						 // FORMAT
+			
+			send_socket(client, buffer);					 // SEND			
+			clean_b(buffer);								 // CLEAN BUFFER
+			
+			}
+		}
+		
+		sprintf(buffer, "END_ITEM \n");
+		send_socket(client, buffer);					 		 // SEND
+		clean_b(buffer);								 	 	 // CLEAN BUFFER
+		fseek(server->object_file, 0, SEEK_SET);				 // RESET FILE
+		return SUCCESS;
+	}
+	
+	error_msg(client, "0x062");
+	return FAIL;
+}
+
+state put_new_item(struct user_t * client, struct server_t * server, char * buffer)
+{
+
+	char ligne[256];
+	struct object_t temp_item;
+
+	if(sscanf(buffer,"PUT_NEW_ITEM = %s + %s + %s + %s + %f + %d + %s",
+		temp_item.name, 
+		temp_item.category, 
+		temp_item.description, 
+		temp_item.url_image, 
+		&temp_item.start_price, 	
+		&temp_item.quantity,			
+		temp_item.place) != 7)
+	{		
+		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
+		error_msg(client, "0x999");
+		return FAIL;
+	}
+	clean_b(buffer);
+	
+	temp_item.temp_price = -1; 
+	temp_item.final_price = -1;
+	time(&temp_item.vendeur);
+	temp_item.acheteur = 0;
+	
+	encode_item(client, &temp_item, ligne);
+	fseek(server->object_file, 0, SEEK_END);
+	if(fputs(ligne, server->object_file) == EOF)
+	{
+		fprintf(stderr,"[ERROR]: Impossible d'ajouter un nouvel item: %s\n", strerror(errno));
+		error_msg(client, "0x064");
+		return FAIL;
+	}
+	
+	send_socket(client, "ITEM_ADDED \n");
+	fseek(server->object_file, 0, SEEK_SET);
+	return SUCCESS;
+}
+
+state req_hist_item_bought(struct user_t * client, struct server_t * server, char * buffer)
+{
+	struct object_t temp_item;
+	unique_id_t user_uid;
+	char ligne[256];
+	
+	
+	if(sscanf(buffer,"REQ_HIST_ITEM_BOUGHT BY %ld \n", &user_uid) != 1)
+	{
+		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
+		error_msg(client, "0x999");
+		return FAIL;
+	}
+	clean_b(buffer);
+	
+	fseek(server->object_file, 0, SEEK_SET);
+	
+	if(user_uid == client->uid)						  // CHECKING USERNAME
+	{
+		
+		while(fgets(ligne, sizeof(ligne), server->object_file)) // GET EACH LINE
+		{
+			decode_item(client, &temp_item, ligne);			  // DECODE LINE
+			
+			if((temp_item.acheteur == client->uid)&&(temp_item.final_price > 0))  // IF CLIENT -> ITEM
+			{
+				sprintf(buffer, "ITEM = %ld %s %s %f %f %f %d \n" , 
+				temp_item.uid,
+				temp_item.name,
+				temp_item.category,
+				temp_item.start_price,
+				temp_item.temp_price,
+				temp_item.final_price,
+				temp_item.quantity);						 // FORMAT
+			
+			send_socket(client, buffer);					 // SEND			
+			clean_b(buffer);								 // CLEAN BUFFER
+			
+			}
+		}
+		
+		sprintf(buffer, "END_ITEM \n");
+		send_socket(client, buffer);					 		 // SEND
+		clean_b(buffer);								 	 	 // CLEAN BUFFER
+		fseek(server->object_file, 0, SEEK_SET);				 // RESET FILE
+		return SUCCESS;
+	}
+	
+	error_msg(client, "0x062");
+	return FAIL;
+}
+
+/*state req_bid_user(struct user_t * client, struct server_t * server, char * buffer)
+{
+	
+}
+}*/
+state req_cat(struct user_t * client, struct server_t * server, char * buffer)
+{
+	int tabex = 0;
+	int index = 0;
+	bool egal = FALSE;
+	struct object_t temp_item;
+	char ligne[256];
+	char * category[10]; 
+	
+	clean_b(buffer);
+	
+	fseek(server->object_file, 0, SEEK_SET);	
+	while(fgets(ligne, sizeof(ligne), server->object_file)) // GET EACH LINE
+	{	
+		egal = FALSE;
+		decode_item(client, &temp_item, ligne);			  // DECODE LINE
+		while(index < tabex)
+		{ // il faut que ca soit pareil qu'une seule fois pour sortir
+			if(strcmp(category[index],temp_item.category) == 0)
+				egal = TRUE;
+				break;
+			index++;
+		}
+		if(egal == FALSE)
+		{
+			strcpy(category[tabex], temp_item.category);
+			tabex++;
+		}
+		index = 0;
+	}
+	
+	// ENVOI DES CATEGORIES
+	
+	index = 0;
+	while((index <= tabex) && ((strlen(category[index]) > 0)))
+	{
+		sprintf(buffer, "CATEGORY = %s \n", category[index]);
+		send_socket(client, buffer);					 		 // SEND
+		clean_b(buffer);								 	 	 // CLEAN BUFFER
+		index++;
+	}
+	
+	sprintf(buffer, "END_CATEGORY \n");
+	
+	fseek(server->object_file, 0, SEEK_SET);				 // RESET FILE
+	return SUCCESS;
+
+/*	
+	error_msg(client, "0x062");
+	return FAIL;
+*/
+}
+
+
+state req_cat_access(struct user_t * client, struct server_t * server, char * buffer)
+ {
+ 
+	char category[50];
+	char ligne[256];
 	struct object_t temp_item;
 	
-	sscanf(buffer,"REQ_OP = %s ON %ld \n", op, &item_uid);
+	if(sscanf(buffer,"REQ_CAT_ACCESS = %s \n", category) != 1)
+	{
+		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
+		error_msg(client, "0x999");
+		return FAIL;
+	}
 	clean_b(buffer);
 	
 	fseek(server->object_file, 0, SEEK_SET);				 // RESET FILE
 	
-	if(strcmp(op, "DELETE") ==0)							 // IF DELETE BID
-	{
+	while(fgets(ligne, sizeof(ligne), server->object_file)) // GET EACH LINE
+	{	
+		decode_item(client, &temp_item, ligne);			  // DECODE LINE
 		
-	}
-	else if(strcmp(op, "CANCEL") ==0)						 // IF RESET BID
-	{
-		while(fgets(ligne, sizeof(ligne), server->auth_file) // GET ITEM LINE
+		if(strcmp(temp_item.category, category) == 0)
 		{
-			decode_item(client, &temp_item, ligne);			 // DECODE LINE
-			if(temp_item.uid == item_uid)
-			{
-				temp_item.temp_price = 0;
-				encode(client, &temp_item, ligne);
-				fseek(server->object_file, -strlen(ligne), SEEK_SET);
-				
-				break;
-			}
-			
+		
+			sprintf(buffer, "ITEM = %ld %s %s %f %f %f %d \n" , 
+			temp_item.uid,
+			temp_item.name,
+			temp_item.category,
+			temp_item.start_price,
+			temp_item.temp_price,
+			temp_item.final_price,
+			temp_item.quantity);						 	 // FORMAT
+		
+			send_socket(client, buffer);					 // SEND			
+			clean_b(buffer);								 // CLEAN BUFFER
+		}
+		else
+		{
+			// IGNRORE
 		}
 	}
-	else													 // IF ELSE
-}
-
-/*
-
-bool req_item_sold(struct user_t * client, struct server_t * server, char * buffer)
-{
-}
-
-bool req_item_user(struct user_t * client, struct server_t * server, char * buffer)
-{
-}
-
-bool req_hist_item_bought(struct user_t * client, struct server_t * server, char * buffer)
-{
-}
-
-bool req_bid_user(struct user_t * client, struct server_t * server, char * buffer)
-{
-}
-
-bool req_cat(struct user_t * client, struct server_t * server, char * buffer)
-{
-}
-
- bool req_cat_access(struct user_t * client, struct server_t * server, char * buffer)
- {
+	
+	sprintf(buffer, "END_ITEM \n");
+	send_socket(client, buffer);					 		 // SEND
+	clean_b(buffer);								 	 	 // CLEAN BUFFER
+	fseek(server->object_file, 0, SEEK_SET);				 // RESET FILE
+	return SUCCESS;
  }
  
- bool req_tiem(struct user_t * client, struct server_t * server, char * buffer)
- {
  
- }
- bool req_bid_price(struct user_t * client, struct server_t * server, char * buffer)
+state req_tiem(struct user_t * client, struct server_t * server, char * buffer)
  {
- 
+	unique_id_t item_uid = 0;
+	char ligne[256];
+	struct object_t temp_item;
+	
+	
+	if(sscanf(buffer,"REQ_ITEM = %ld \n", &item_uid) != 1)
+	{
+		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
+		error_msg(client, "0x999");
+		return FAIL;
+	}
+	clean_b(buffer);
+	fseek(server->object_file, 0, SEEK_SET);
+	
+	while(fgets(ligne, sizeof(ligne), server->object_file)) // GET EACH LINE
+	{
+		decode_item(client, &temp_item, ligne);			  // DECODE LINE
+
+		if(temp_item.uid == item_uid)
+		{
+			sprintf(buffer, "ITEM = %s + %s + %s + %s + %f + %d + %s \n" , 
+			temp_item.name,
+			temp_item.category,
+			temp_item.description,
+			temp_item.url_image,
+			temp_item.start_price,
+			temp_item.quantity,
+			temp_item.place);						 	 	  // FORMAT
+		
+			send_socket(client, buffer);					  // SEND			
+			clean_b(buffer);
+			return SUCCESS;
+			
+		}
+				
+	}
+	
+	error_msg(client, "0x070");
+	return FAIL;
  }
-*/
+ 
+ 
+state req_bid_price(struct user_t * client, struct server_t * server, char * buffer)
+ {
+	float item_new_price = 0;
+	unique_id_t item_uid = 0;
+	
+	char ligne[256];
+	struct object_t temp_item;
+
+	
+	
+	if(sscanf(buffer,"REQ_BID_PRICE = %f FOR %ld\n", &item_new_price, &item_uid) != 1)
+	{
+		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
+		error_msg(client, "0x999");
+		return FAIL;
+	}
+	clean_b(buffer);
+	
+	fseek(server->object_file, 0, SEEK_SET);
+	while(fgets(ligne, sizeof(ligne), server->object_file)) // GET EACH LINE
+	{
+		decode_item(client, &temp_item, ligne);			  // DECODE LINE
+		
+		if(temp_item.uid == item_uid)
+		{
+			if(item_new_price <= temp_item.temp_price)
+			{
+				error_msg(client, "0x075");
+				return FAIL;
+			}
+			else
+			{
+				temp_item.temp_price = item_new_price;
+				
+				encode_item(client, &temp_item, ligne);
+				if(fseek(server->object_file, - strlen(ligne), SEEK_CUR) != 0)
+				{
+					fprintf(stderr,"[ERROR]: Impossible de déplacer le curseur dans object_file: %s\n", strerror(errno));
+					error_msg(client, "0x999");
+					return FAIL;
+				}
+				if(fputs(ligne, server->object_file) == EOF)
+				{
+					fprintf(stderr,"[ERROR]: Impossible d'écrire la ligne dans object_file: %s\n", strerror(errno));
+					error_msg(client, "0x999");
+					return FAIL;
+				}
+				break;
+			}		
+		}
+		else
+		{
+			// CONTINUE
+		}
+	}
+	
+	fseek(server->object_file, 0, SEEK_SET);	
+	return SUCCESS;
+ }

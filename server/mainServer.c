@@ -43,7 +43,6 @@ int main (int argc, char * argv[])
 	/* variables liées aux client */
 	struct user_t client;
 	
-	
 //DEBUT
 
 	welcome_message(argc, argv);
@@ -86,8 +85,11 @@ int main (int argc, char * argv[])
 			usleep(10000); //PAUSE DE 10 mS	
 		}while(size_recv == -1);		
 		if(debug) fprintf(stdout, "[DEBUG]: Buffer: %s\n", buffer);
-
-		if(strncmp(buffer, "REQ_VERIFY_LOGIN", 13) == 0)	//passro
+		
+		if(0)
+		{
+		}
+		else if(strncmp(buffer, "REQ_VERIFY_LOGIN", 13) == 0)	//passro
 		{
 			req_verify_login(&client, &server, buffer);
 		}
