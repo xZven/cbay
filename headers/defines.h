@@ -19,6 +19,25 @@
 #define SUCCESS 1
 #define FAIL 0
 
+//client
+#define NMAX_CATEGORY 20
+#define NMAX_ITEM 256
+
+//printf color
+#define ECHEC "[\033[31mECHEC\033[0m]"
+#define ERROR "[\033[31mERROR\033[0m]"
+#define WAR	  "[\033[34mWARNING\033[0m]"
+#define INFO  "[\033[32mINFO\033[0m]"
+#define DEBUG_MSG "[\033[35mDEBUG\033[0m]"
+#define GREEN "\033[32m"
+#define NORM  "\033[0m"
+
+// mode de connexion
+
+#define BUYER  'b'
+#define SELLER 's'
+#define ADMIN  'a'
+
 // VARIABLES GLOBAL
 int debug; 						// Utilisé pour le mode debug
 
@@ -26,7 +45,8 @@ int debug; 						// Utilisé pour le mode debug
 typedef time_t unique_id_t; 	// UNIQUE ID
 typedef int fd_t; 				// DESCRIPTEUR DE FICHIER
 typedef int bool;				// TYPE BOOLEAN
-typedef int state;
+typedef int state;				// type state pour les états des requêtes
+typedef char mode;				// TYPE mode pour le choix du mode
 
 #endif
 

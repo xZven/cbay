@@ -3,44 +3,51 @@
 
 state req_verify_login(struct user_t * client, struct server_t * server, char * buffer)
 {
-
 	char ligne[512];
 	struct user_t temp_chck;
 	
+	info("Requête de vérification du login");
 	if(sscanf(buffer,"REQ_VERIFY_LOGIN = %s\n", client->login) != 1)
 	{
-		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
+		errorm("Impossible d'extraire la requête");
 		error_msg(client, "0x999");
 		return FAIL;
 	}
 	clean_b(buffer);
 	
-	fseek(server->auth_file, 0, SEEK_SET); // deplacement du curseur en début de fichier.
+	fseek(server->auth_file, 0, SEEK_SET); // reset file
 	
 	while(fgets(ligne, sizeof(ligne), server->auth_file) != NULL)
 	{
-		if(sscanf(ligne, "%ld %s", &temp_chck.uid, temp_chck.login) != 2)
+		debugm(ligne);
+		if(decode_user(&temp_chck, ligne) == TRUE)
 		{
-			fprintf(stderr,"[ERROR]: Erreur lors de la vérification du login: %s", strerror(errno) );
-			error_msg(client, "0x999");
-			return FAIL;
-		}
-		else
-		{			
-		 	if(client->login == temp_chck.login)
+			if(strcmp(client->login,temp_chck.login) == 0)
 			{
-				strcpy(buffer, "LOGIN_BUSY\n");
-				send_socket(client, buffer);	//-->
+				info("LOGIN BUSY");
 				clean_b(buffer);
+				sprintf(buffer, "LOGIN_BUSY = %s\n", client->login);
+				debugm(buffer);
+				send_socket(client, buffer);	//-->
+				fseek(server->auth_file, 0, SEEK_SET); // reset file
 				return LOGIN_BUSY;
 			}
 		}
+		else
+		{
+			errorm("Erreur lors du décodage de la ligne");
+			error_msg(client, "0x999");
+			fseek(server->auth_file, 0, SEEK_SET); // reset file
+			return FAIL;
+		}
 	}
 	
-	fseek(server->auth_file, 0, SEEK_SET); // DEPALCEMENT DU CURSEUR EN DEBUT DE fichier
-			strcpy(buffer, "LOGIN_FREE\n");
-			send_socket(client, buffer);
-			clean_b(buffer);
+	fseek(server->auth_file, 0, SEEK_SET); // reset file
+	info("LOGIN FREE");
+	clean_b(buffer);
+	sprintf(buffer, "LOGIN_BUSY = %s \n", client->login);
+	send_socket(client, buffer);
+	debugm(buffer);
 	return LOGIN_FREE; // OK
 }
 
@@ -48,9 +55,10 @@ state req_new_user(struct user_t * client,  struct server_t * server, char * buf
 {
 	char ligne[1024];	
 	
+	info("Requête d'ajout d'un utilisateur");
 	if(sscanf(buffer,"REQ_NEW_USER = %s + %s \n", client->login, client->password) != 2)
 	{
-		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
+		errorm("Impossible d'extraire la requête");
 		error_msg(client, "0x999");
 		return FAIL;
 	}
@@ -60,18 +68,19 @@ state req_new_user(struct user_t * client,  struct server_t * server, char * buf
 	time(&client->uid);						// ATTRIBUTION UID
 	client->admin = -1; 					// MODE INDERTERMINEE
 	client->last_connect = 0;				// PAS DE PREMIERE CONNEXION	
-	encode_user(client, ligne);	clean_b(buffer);	
+	encode_user(client, ligne);	
 	
 	fseek(server->auth_file, 0, SEEK_END); // DEPALCEMENT DU CURSEUR en fin de fichier
 	if(fprintf(server->auth_file, "%s\n",ligne) <0)
 	{
-		fprintf(stderr,"[ERROR]: Ajout nouvel utilisateur impossible: %s\n",strerror(errno));
+		errorm("Impossible d'ajouter le nouvel utilisateur");
 		error_msg(client, "0x000");	
 		return FAIL;
 	}
 	
 	log_inscription(client, server);
 	fseek(server->auth_file, 0, SEEK_SET); // RESET FILE
+	info("Ajout réussi");
 	return SUCCESS;
 }
 
@@ -80,21 +89,22 @@ state req_connect(struct user_t * client,  struct server_t * server, char * buff
 	char ligne[512];
 	struct user_t temp_chck;
 	
-
+	info("Requête de connexion");
 	if(sscanf(buffer,"REQ_CONNECT = %s + %s \n", client->login, client->password) != 2)
 	{
-		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
+		errorm("Impossible d'extraire la requête");
 		error_msg(client, "0x999");
 		return FAIL;
 	}
 	clean_b(buffer);
+	
 	fseek(server->auth_file, 0, SEEK_SET); // deplacement du curseur en debut de fichier
 	
 	while(fgets(ligne, sizeof(ligne), server->auth_file) != NULL)
 	{
 		if(sscanf(ligne, "%ld %s %s %d %ld", &temp_chck.uid, temp_chck.login, temp_chck.password, &temp_chck.admin, &temp_chck.last_connect) != 5)
 		{
-			fprintf(stderr,"[ERROR]: Erreur lors de la connexion d'un utilisateur %s\n", strerror(errno));
+			errorm("Erreur de récupération des termes de la ligne");
 			error_msg(client, "0x010");
 			return FAIL;
 		}
@@ -112,7 +122,8 @@ state req_connect(struct user_t * client,  struct server_t * server, char * buff
 					clean_b(buffer);
 				/***********************************************************/
 					log_connect(client, server);
-				
+					
+					info("Utilisateur connecté !");
 					return CONNECT_SUCCESS;
 				}
 				else
@@ -124,7 +135,9 @@ state req_connect(struct user_t * client,  struct server_t * server, char * buff
 		}
 	}
 	
+	info("Connection non-aboutie");
 	error_msg(client, "0x011");
+	
 	return CONNECT_FAIL; //PAS DE LOGIN TROUVEE
 	
 }
@@ -194,69 +207,76 @@ state req_new_pw(struct user_t * client, struct server_t * server, char * buffer
 {
 	
 	char new_pw[20];
-	unique_id_t client_uid;
 	char client_login[20];
-	struct user_t temp_client;
 	char ligne[128];
+	unique_id_t client_uid;	
+	struct user_t temp_client;
+	
+	
+	if(debug)printf("[DEBUG] = req_new_pw\n");
 	
 	if(sscanf(buffer,"REQ_NEW_PW = %s ON %s BY %ld \n", new_pw, client_login, &client_uid) != 3);
 	{
+		printf("%s %s %ld\n", new_pw, client_login, client_uid);
 		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
 		error_msg(client, "0x999");
 		return FAIL;
 	}
-	clean_b(buffer);
+	if(debug)printf("[DEBUG]: Cleanning buffer\n");
+	clean_b(buffer);	
+	if(debug)printf("[DEBUG]: Extraction de la requête réussi");
 	
-		if(client_uid == client->uid && client->admin == TRUE)
+	if(client_uid == client->uid && client->admin == TRUE) // vérification user == admin
+	{
+		while(fgets(ligne, sizeof(ligne), server->auth_file) != NULL)
 		{
-			while(fgets(ligne, sizeof(ligne), server->auth_file) != NULL)
+			if(decode_user(&temp_client, ligne) == FAIL)
 			{
-				if(decode_user(&temp_client, ligne) == FAIL)
+				fprintf(stderr,"[ERROR]: Erreur modification de mot de passe: %s\n", strerror(errno));
+				error_msg(client, "0x999");
+				return FAIL;
+			}
+			if(strcmp(temp_client.login, client_login) == 0)
+			{
+				if(temp_client.admin != TRUE)
 				{
-					fprintf(stderr,"[ERROR]: Erreur modification de mot de passe: %s\n", strerror(errno));
-					error_msg(client, "0x999");
-					return FAIL;
-				}
-				if(strcmp(temp_client.login, client_login) == 0)
-				{
-					if(temp_client.admin != TRUE)
+					if(temp_client.password != new_pw)
 					{
-						if(temp_client.password != new_pw)
-						{
-							strcpy(temp_client.password, new_pw);
-							fseek(server->auth_file, -(strlen(ligne)),SEEK_CUR);
-							encode_user(&temp_client, ligne);
-							fprintf(server->auth_file,"%s \n", ligne);
-							/***************************************************/
-							sprintf(buffer, "PASSWORD_CHANGED \n");
-							send_socket(client, buffer);
-							clean_b(buffer);
-							return SUCCESS;
-						}
-						else
-						{
-							error_msg(client, "0x044");
-							return FAIL;
-						}
+						strcpy(temp_client.password, new_pw);
+						fseek(server->auth_file, -(strlen(ligne)),SEEK_CUR);
+						encode_user(&temp_client, ligne);
+						fprintf(server->auth_file,"%s \n", ligne);
+						/***************************************************/
+						sprintf(buffer, "PASSWORD_CHANGED \n");
+						send_socket(client, buffer);
+						clean_b(buffer);
+						return SUCCESS;
 					}
 					else
 					{
-						error_msg(client, "0x043");
+						error_msg(client, "0x044");
 						return FAIL;
 					}
 				}
 				else
 				{
-				}				
+					error_msg(client, "0x043");
+					return FAIL;
+				}
 			}
-			error_msg(client, "0x042");
+			else
+			{
+			}				
 		}
-		else
-		{
-			error_msg(client, "0x041");
-			return FAIL;
-		}
-	
+		error_msg(client, "0x042");
+	}
+	else
+	{
+		if(debug)printf("[DEBUG]:User is not an admin, sending error...\n");
+		error_msg(client, "0x041");
+		return FAIL;
+	}
+
 	return FAIL;
 }
 
@@ -269,23 +289,32 @@ state req_del_user(struct user_t * client, struct server_t * server, char * buff
 	
 	fd_t fd;
 	
-	if(sscanf(buffer,"REQ_DEL_USER = %s BY %ld \n", client_del_login, &client_uid) != 3)
+	if(debug)printf("[DEBUG] = req_del_user\n");
+	if(debug)printf("[DEBUG] = buffer: %s \n", buffer);
+	
+	if(sscanf(buffer,"REQ_DEL_USER = %s BY %ld \n", client_del_login, &client_uid) != 2)
 	{
 		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
 		error_msg(client, "0x999");
 		return FAIL;
 	}
+	if(debug)printf("[DEBUG]: Cleanning buffer\n");
 	clean_b(buffer);
 	
+	if(debug)printf("[DEBUG]: Extraction de la requête réussi\n");
+	
+	if(debug)printf("[DEBUG]:Création du fichier virtuelle (pipe)\n");
 	if(pipe(&fd) == -1)
 	{
 		fprintf(stderr,"[ERROR]: Erreur creation d'un pipe (req_del_user): %s\n", strerror(errno));
 		error_msg(client, "0x999");
 		return FAIL;
 	}
+	if(debug)printf("[DEBUG]:PIPE OK\n");
 		
-	if(client_uid == client_uid && client->admin == TRUE)
+	if(client_uid == client->uid && client->admin == TRUE)
 	{
+		if(debug)printf("[DEBUG]: Lecture ligne pas ligne du fichier\n");
 		while(fgets(ligne, sizeof(ligne), server->auth_file) != NULL)
 		{
 			if(strcmp(client_del_login, ligne) <= 0) // SI CE N'EST PAS LA LIGNE A IGNOREE
@@ -309,6 +338,7 @@ state req_del_user(struct user_t * client, struct server_t * server, char * buff
 	}
 	else
 	{
+		if(debug)printf("[DEBUG]:User is not an admin, sending error...\n");
 		error_msg(client, "0x042");
 		return FAIL;
 	}

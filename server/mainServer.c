@@ -56,8 +56,7 @@ int main (int argc, char * argv[])
 	//PREPARATION DES CONNEXIONS
 	init_socket(&socklis, &nom_server, &server);
 	
-	while(1)
-{
+	
 	//ATTENTE DE CONNEXION D'UN CLIENT	
 	if(listen(socklis, 1) == -1)
 	{
@@ -65,7 +64,8 @@ int main (int argc, char * argv[])
 		exit(-1);
 	}
 	fprintf(stdout, "\n\n***[WAR]: ATTENTE DE CONNEXION ***\n\n");
-	
+	while(1)
+{	
 	//CONNECTION
 	len_nom_client = sizeof(nom_client);
 	client.socket_fd = accept(socklis, &nom_client, &len_nom_client);
@@ -83,6 +83,12 @@ int main (int argc, char * argv[])
 			{
 				size_recv = recv(client.socket_fd, buffer, sizeof(buffer), MSG_DONTWAIT);
 				usleep(10000); //PAUSE DE 10 mS	
+				if(size_recv == 0)
+				{
+					client.socket_fd = 0;
+					printf("%s: Client déconnecté\n", WAR);
+					break;
+				}
 			}while(size_recv == -1);		
 			if(debug) fprintf(stdout, "[DEBUG]: Buffer: %s\n", buffer);
 			

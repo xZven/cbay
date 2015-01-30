@@ -37,7 +37,12 @@ void welcome_message(int argc, char * argv[])
  */
 void clean_b(char * buffer)
 {
-	buffer[0]='\0';
+	int index=0;
+	while(index < sizeof(buffer))
+	{
+		buffer[index]='\0';
+		index++;
+	}
 }
 
 /*
@@ -181,7 +186,8 @@ int rcv_socket(struct user_t * client, char * buffer)
 	size_t size_recv;
 	do
 	{
-		size_recv = recv(client->socket_fd, buffer, sizeof(buffer), MSG_DONTWAIT);
+		read(client->socket_fd, buffer, 0);
+		size_recv = recv(client->socket_fd, buffer, sizeof(buffer), MSG_WAITALL); //
 		usleep(10000); //PAUSE DE 10 mS	
 	}
 	while(size_recv == -1);
@@ -190,7 +196,7 @@ int rcv_socket(struct user_t * client, char * buffer)
 
 bool send_socket(struct user_t * client, const char * buffer)
 {
-	send(client->socket_fd, buffer, strlen(buffer) + 1, MSG_CONFIRM);
+	send(client->socket_fd, buffer, strlen(buffer) + 1, MSG_DONTWAIT);
 	return SUCCESS;
 }
 
@@ -198,10 +204,32 @@ bool error_msg(struct user_t * client, const char * error_code)
 {
 	char buffer[20];
 	
-	sprintf(buffer, "ERROR = %s\n", error_code);
-	printf("%s \n", error_code);
+	sprintf(buffer, "ERROR = %s \n", error_code);
+	printf("[REQ ERROR]: %s\n", error_code);
 	send_socket(client, buffer);
 	return SUCCESS;
+}
+
+/* AFFICHAGE CONSOLE */
+
+void info(const char * info_msg)
+{
+	printf("%s: %s\n", INFO, info_msg);
+}
+
+void debugm(const char * debug_msg)
+{
+	printf("%s: %s\n", DEBUG_MSG, debug_msg);
+}
+
+void errorm(const char * error_msg)
+{
+	printf("%s: %s  %s\n", ERROR, error_msg, strerror(errno));
+}
+
+void echecm(const char * echec_msg)
+{
+	printf("\n%s: %s\n", ECHEC, echec_msg);
 }
 
 void shut_server(struct server_t * server)
@@ -214,6 +242,7 @@ void shut_server(struct server_t * server)
 
 }
 
+/* FONCTIONS DE CODAGE ET DECODAGE DES LIGNES DES FICHIERS */
 bool decode_user(struct user_t * client, char * ligne)
 {
 	int n;
