@@ -33,7 +33,7 @@ state req_sign_up(struct user_t * client, char * buffer)
 			return FAIL;
 		}
 		
-		debugm(buff);
+		debugm(buff); debugm("Réception");
 	}while(strncmp(buff, "LOGIN_FREE", 10) != 0);	//Sort de la boucle si la réponse est LOGIN_FREE
 	
 	printf("%sLe nom d'utilisateur est libre.\n%s", GREEN, NORM);
@@ -46,13 +46,13 @@ state req_sign_up(struct user_t * client, char * buffer)
 	
 	if(rcv_socket(client, buffer) == -1)
 		{
-			fprintf(stderr,"[ERROR]: Erreur lors de la réception: %s\n", strerror(errno));
+			errorm("Erreur lors de la réception");
 			return FAIL;
 		}
 	
 	if(strcmp(buffer, "USER_ADDED \n") == 0)
 	{
-		printf("%sVotre compte a bien été créé !%s", GREEN, NORM);
+		greenm("Votre compte a bien été créé !");
 		return SUCCESS;
 	}
 	else

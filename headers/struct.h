@@ -25,7 +25,7 @@ struct object_t
 	float temp_price;  		// PRIX INTERMEDIAIRES (prix proposé durant l'enchère par les utilisateurs, le prix affiché est celui le plus élevé)
 	float final_price; 		// PRIX FINAL DE L'ENCHERE
 	int quantity;			// QUANTITE (le prix de l'enchère est pour tout le lot)
-	char place[50];         // ADRESSE DE L'OBJETS
+	char place[100];         // ADRESSE DE L'OBJETS
 	unique_id_t vendeur;	// UID DU VENDEUR
 	unique_id_t acheteur;	// UID DE L'ACHETEUR (initialisé à 0 / mis à 0 lors de la suppresion d'un utilisateur lros d'un enchère)
 };

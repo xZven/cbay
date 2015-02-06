@@ -1,9 +1,39 @@
 /* Projet Cbay BALBIANI Lorrain - Manavai TEIKITUHAAHAA */
 
-/*
- * Cette fonction sert à afficher un message d'acceuil et à 
- * activer ou désactiver le mode DEBUG.
- */
+/* AFFICHAGE CONSOLE */
+
+void info(const char * info_msg)
+{
+	printf("%s: %s\n", INFO, info_msg);
+}
+
+void debugm(const char * debug_msg)
+{
+	printf("%s: %s\n", DEBUG_MSG, debug_msg);
+}
+
+void warm(const char * war_msg)
+{
+	printf("%s: %s\n", WAR, war_msg);
+}
+
+void errorm(const char * error_msg)
+{
+	printf("%s: %s  %s\n", ERROR, error_msg, strerror(errno));
+}
+
+void echecm(const char * echec_msg)
+{
+	printf("\n%s: %s\n", ECHEC, echec_msg);
+}
+
+void greenm(const char * green_msg)
+{
+	printf("%s%s%s\n", GREEN, green_msg, NORM);
+}
+
+
+//fonction pour le message de bienvenue et pour activer le mode debug
 void welcome_message(int argc, char * argv[])
 {
 	int index = 0;
@@ -13,7 +43,7 @@ void welcome_message(int argc, char * argv[])
 	printf("\n\tUPSSITECH		            STRI\n");
 	printf("\t----------------------------------------\n");
 	
-	printf("\n\tBienvenue sur Cbay, Application serveur!\n\n");
+	greenm("\n\tBienvenue sur Cbay, Application Serveur!\n\n");
 	
 	if(argc > 1)
 		{
@@ -32,113 +62,106 @@ void welcome_message(int argc, char * argv[])
 		}
 }
 
-/*
- * Cette fonction sert à nettoyer les buffer
- */
+// Cette fonction sert à nettoyer les buffer
 void clean_b(char * buffer)
 {
 	int index=0;
-	while(index < sizeof(buffer))
+	while(index < 1024)
 	{
 		buffer[index]='\0';
 		index++;
 	}
 }
 
-/*
- * Cette fonction sert à charger les paramètres du serveur
- * à partir du fichier de configuration.
- */
- /* Projet Cbay BALBIANI Lorrain - Manavai TEIKITUHAAHAA */
+// fonction de chargement des paramètres à partir du fichier de configuration du serveur
 void load_server(struct server_t * server)
 {
-	int index = 1; // affichage du numéro de ligne
-	errno = 0;
+
 	FILE * config_file;
 	char buffer[256];
 	char arg1[128];
 	char arg2[128]; arg2[0] = '\0';
 
 	
-	if(debug) fprintf(stdout, "[DEBUG]: fopen: Fichier de configuration\n"); //DEBUG
+	debugm("fopen: Fichier de configuration");
 	config_file = fopen("./conf/server.conf", "r"); // ouverture du fichier de configuration du serveur
 	if(config_file == NULL)
 	{
-		fprintf(stderr, "[ERROR]: %s\n\nExiting...\n", strerror(errno));
-		exit(-1);
+		errorm("Ouverture du fichier de configuration impossible !");
+		exit(FAIL);
 	}
-	if(debug) fprintf(stdout, "[DEBUG]: fopen reussi\n"); //DEBUG	
-	if(debug) fprintf(stdout, "[DEBUG]: Lecture du fichier lgine par ligne...\n\n");	//DEBUG
+	debugm("fopen: OK");	
+	debugm("Lecture en cours");
 	while(fgets(buffer, sizeof(buffer), config_file) != NULL) //LECTURE LIGNE PAR LIGNE DU FICHIER DE CONF
 	{
-		if(debug) fprintf(stdout, "[DEBUG]: Ligne %d: %s\n", index, buffer); //DEBUG
+		debugm(buffer); // affichage de la ligne
 		if(buffer[0] == '#') //LIGNE DE COMMENTAIRE
-			{
-				if(debug) fprintf(stdout, "[DEBUG]: Ligne de commentaire: %s", buffer + 1); //DEBUG
-			}
-		
-		if(sscanf(buffer, "%s %s\n", arg1, arg2) == 2) //DECODAGE DE LA LIGNE
 		{
-			if(debug) fprintf(stdout, "[DEBUG]: sscanf OK\n"); //DEBUG	
-			
-			if(strcmp(arg1, "server_name") == 0) // ligne du nom du serveur
-			{
-				strcpy(server->server_name, arg2);
-			}
-			else if(strcmp(arg1, "port_number") == 0) // ligne du numéro de port
-			{
-				server->port_number = atoi(arg2);
-			}
-			else if(strcmp(arg1, "auth_file") == 0) // fichier d'authentification
-			{
-				server->auth_file = fopen(arg2, "a+");
-				if(server->auth_file == NULL)
-				{
-					fprintf(stderr, "[ERROR]: fopen  (auth_file) erreur: %s\nExiting...\n", strerror(errno));
-					exit(-1);
-				}
-				else
-					if(debug) fprintf(stdout, "[DEBUG]: fopen (auth_file) reussi\n"); //DEBUG
-			}
-			else if(strcmp(arg1, "object_file") == 0) // fichier des objets
-			{
-				server->object_file = fopen(arg2, "a+");
-				if(server->auth_file == NULL)
-				{
-					fprintf(stderr, "[ERROR]: fopen (object_file) erreur: %s\nExiting...\n", strerror(errno));
-					exit(-1);
-				}
-				else
-					if(debug) fprintf(stdout, "[DEBUG]: fopen (object_file) reussi\n"); //DEBUG
-			}
-			else if(strcmp(arg1, "log_file") == 0) // fichier des logs et des ventes
-			{
-				server->log_file = fopen(arg2, "a+");
-				if(server->auth_file == NULL)
-				{
-					fprintf(stderr, "[ERROR]: fopen (log_file) erreur: %s\nExiting...\n", strerror(errno));
-					exit(-1);
-				}
-				else
-					if(debug) fprintf(stdout, "[DEBUG]: fopen (log_file) reussi\n"); //DEBUG
-				
-			}
-			else
-			{
-				//ERROR
-			}
-			index++;
+			fprintf(stdout,"Ligne de commentaire: %s", buffer + 1);
 		}
-		
-		
+		else
+		{
+			if(sscanf(buffer, "%s %s\n", arg1, arg2) == 2) //DECODAGE DE LA LIGNE
+			{
+				
+				if(strcmp(arg1, "server_name") == 0) // ligne du nom du serveur
+				{
+					strcpy(server->server_name, arg2);
+				}
+				else if(strcmp(arg1, "port_number") == 0) 	// ligne du numéro de port
+				{
+					server->port_number = atoi(arg2);
+				}
+				else if(strcmp(arg1, "auth_file") == 0) 	// fichier d'authentification
+				{
+					strcpy(auth_file, arg2);
+					server->auth_file = fopen(auth_file, "a+");
+					if(server->auth_file == NULL)
+					{
+						errorm("fopen  (auth_file):");
+						exit(FAIL);
+					}
+					else
+						debugm("fopen (auth_file): OK");
+				}	
+				else if(strcmp(arg1, "object_file") == 0)	// fichier des objets
+				{
+					strcpy(object_file, arg2);
+					server->object_file = fopen(object_file, "a+");
+					if(server->auth_file == NULL)
+					{
+						errorm("fopen (object_file)");
+						exit(FAIL);
+					}
+					else
+						debugm("fopen (object_file): OK"); //DEBUG
+				}
+				else if(strcmp(arg1, "log_file") == 0) 	    // fichier des logs et des ventes
+				{
+					server->log_file = fopen(arg2, "a+");
+					if(server->auth_file == NULL)
+					{
+						errorm("fopen (log_file)");
+						exit(FAIL);
+					}
+					else
+						debugm("fopen (log_file): OK"); //DEBUG
+					
+				}
+				else
+				{
+					warm("Ligne inconnu dans le fichier de configuration");
+					exit(FAIL);
+				}
+			}	
+		}	
 	}
+	
 	fclose(config_file);
-	if(debug) fprintf(stdout, "[DEBUG]: fclose (config_file) reussi\n");
+	debugm("fclose (config_file): OK");
 }
 
-/*
- * Cette fonction sert à afficher les paramètres du server
- */
+// fonction pour l'affichage des paramètres du server
 void screen_server(struct server_t server)
 {
 	fprintf(stdout, "|--------------------PARAMETRES----------------------|\n");
@@ -151,19 +174,18 @@ void screen_server(struct server_t server)
 
 }
 
-/*
- * Cette fonction charge les connexions réseaux.
- */
+// fonction pour l'initilisation des paramètres de connexion résaux.
 void init_socket(int * socklis, struct sockaddr_in * nom_server, struct server_t * server)
 {
-	fprintf(stdout, "[INFOS]: CHARGEMENT: connexion ...\n");
+	info("Chargement des connexions");
 	/* construction du socket local */
-	if(debug) fprintf(stdout, "[DEBUG]: Construction du socket local\n"); //DEBUG
+	debugm("Construction du socket local"); //DEBUG
 	if((*socklis = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) /* (IPv4 ,flux de donnée binaire (en mode connecte), protocole TCP) */
 	{
-		fprintf(stderr, "[ERROR]: Socket(): %s\nExiting...\n", strerror(errno));
-		exit(-1); //
+		errorm("Socket():\nExiting...\n");
+		exit(FAIL); //
 	}
+	
 	if(debug) fprintf(stdout, "[DEBUG]: Construction réussi: sock = %d\n", *socklis); //DEBUG
 
 	/* Association nom interne - nom externe socket local */
@@ -171,35 +193,60 @@ void init_socket(int * socklis, struct sockaddr_in * nom_server, struct server_t
 	nom_server->sin_port = server->port_number;
 	nom_server->sin_addr.s_addr = INADDR_ANY;
 	
-	if(debug) fprintf(stdout, "[DEBUG]: bind ...\n");
+	debugm("bind ...");
 	if(bind(*socklis, (struct sockaddr *)nom_server, sizeof(*nom_server)) == -1)
 	{
-		fprintf(stderr,"[ERROR]: bind(): %s\nExiting...\n", strerror(errno));
-		exit(-1);
+		errorm("bind()\nExiting...\n");
+		exit(FAIL);
 	}
-	if(debug) fprintf(stdout, "[DEBUG]: bind() OK\n");
+	debugm("bind() OK");
   	 
 }
 
+// fonction pour la réception des données
 int rcv_socket(struct user_t * client, char * buffer)
 {
 	size_t size_recv;
+	
+	clean_b(buffer);
+
 	do
 	{
-		read(client->socket_fd, buffer, 0);
-		size_recv = recv(client->socket_fd, buffer, sizeof(buffer), MSG_WAITALL); //
-		usleep(10000); //PAUSE DE 10 mS	
-	}
-	while(size_recv == -1);
+		usleep(10000);
+		size_recv = recv(client->socket_fd, buffer, 1024, MSG_DONTWAIT);
+		
+		if(size_recv == 0) // la connexion a été fermé
+		{
+			warm("Connexion a été fermée par le client");
+			
+			info("Réinitialisation des paramètres client");
+		
+			client->uid = 0;
+			client->login[0] = '\0';
+			client->password[0] = '\0';
+			client->admin = -1;
+			client->mode = 'i';
+			client->last_connect = 0;
+			close(client->socket_fd);
+			client->socket_fd = -1;
+			
+			return FAIL;
+		}
+
+	}while(size_recv == -1);	
+	debugm("buffer:");
+	debugm(buffer);	
 	return SUCCESS;
 }
 
+// fonctions pour l'émession de données
 bool send_socket(struct user_t * client, const char * buffer)
 {
 	send(client->socket_fd, buffer, strlen(buffer) + 1, MSG_DONTWAIT);
 	return SUCCESS;
 }
 
+// fonction pour l'émission des messages d'erreurs
 bool error_msg(struct user_t * client, const char * error_code)
 {
 	char buffer[20];
@@ -210,28 +257,7 @@ bool error_msg(struct user_t * client, const char * error_code)
 	return SUCCESS;
 }
 
-/* AFFICHAGE CONSOLE */
-
-void info(const char * info_msg)
-{
-	printf("%s: %s\n", INFO, info_msg);
-}
-
-void debugm(const char * debug_msg)
-{
-	printf("%s: %s\n", DEBUG_MSG, debug_msg);
-}
-
-void errorm(const char * error_msg)
-{
-	printf("%s: %s  %s\n", ERROR, error_msg, strerror(errno));
-}
-
-void echecm(const char * echec_msg)
-{
-	printf("\n%s: %s\n", ECHEC, echec_msg);
-}
-
+// fonction pour la mise en arrêt du serveur
 void shut_server(struct server_t * server)
 {
 	fclose(server->auth_file); if(debug) fprintf(stdout, "[DEBUG]: fclose (auth_file) reussi\n");
@@ -241,6 +267,7 @@ void shut_server(struct server_t * server)
 	exit(0);
 
 }
+
 
 /* FONCTIONS DE CODAGE ET DECODAGE DES LIGNES DES FICHIERS */
 bool decode_user(struct user_t * client, char * ligne)
@@ -270,7 +297,7 @@ bool decode_item(struct user_t * client, struct object_t * item, char * ligne)
 {
 	int n;
 	
-	n = sscanf(ligne, "%ld %s %s %s %s %f %f %f %d %s %ld %ld\n", 
+	n = sscanf(ligne, " %ld + %51[A-Za-z0123456789 ] + %51[A-Za-z ] + %1024[A-Za-z0123456789. ] + %99[A-Za-z0123456789:// ]+ %f + %f + %f + %d + %99[A-Za-z0123456789,. ] + %ld + %ld \n", 
 	&item->uid, 
 	item->name, 
 	item->category, 
@@ -294,7 +321,7 @@ bool encode_item(struct user_t * client, struct object_t * item, char * ligne)
 {
 	int n;
 	
-	n = sprintf(ligne, "%ld %s %s %s %s %f %f %f %d %s %ld %ld", 
+	n = sprintf(ligne, " %ld + %s + %s + %s + %s + %f + %f + %f + %d + %s + %ld + %ld \n", 
 	item->uid, 
 	item->name, 
 	item->category, 
@@ -333,10 +360,10 @@ bool decode_log(struct user_t * client, struct log_t * event, struct server_t * 
 
 bool encode_log(struct log_t * event, struct server_t * server)
 {
-	int n;
+	
 	char ligne[256];
 	
-	n = sprintf(ligne, "%ld %ld %ld %c %ld\n",
+	sprintf(ligne, "%ld %ld %ld %c %ld \n",
 		event->item_uid,
 		event->seller_uid,	
 		event->buyer_uid,

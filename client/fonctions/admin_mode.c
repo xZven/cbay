@@ -69,7 +69,7 @@ while(1)
 					
 					if(rcv_socket(client, buffer) == -1)
 					{
-						fprintf(stderr,"[ERROR]: Erreur lors de la réception: %s\n", strerror(errno));
+						errorm("Erreur lors de la réception");
 						return FAIL;
 					}
 					

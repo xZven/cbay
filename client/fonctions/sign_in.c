@@ -4,13 +4,13 @@ state req_connect(struct user_t * client, char * buffer)
 
 	do
 	{
-		
+		greenm("\nConnexion:\n");
 		printf("\tLogin: ");
 		scanf("%s", client->login);
 		printf("\tMot de passe: ");
 		scanf("%s", client->password); // sans écho
 		tentative++;
-		printf("Tentative de connexion %d ...\n", tentative);
+		printf("\nTentative de connexion %d ...\n", tentative);
 		clean_b(buffer);
 		sprintf(buffer, "REQ_CONNECT = %s + %s \n", client->login, client->password);
 		send_socket(client, buffer);
@@ -21,16 +21,18 @@ state req_connect(struct user_t * client, char * buffer)
 			return FAIL;
 		}
 		
-		if(strcmp(buffer, "USER_CONNECTED \n") == 0)
-		{
-			printf("%sConnexion au serveur réussi !%s\n", GREEN, NORM);			
+		if(strncmp(buffer, "USER_CONNECTED", 14) == 0)
+		{	
+			sscanf(buffer, "USER_CONNECTED = %ld \n", &client->uid);
+			clean_b(buffer);
+			printf("%sConnecté en tant que:%s %s\n", GREEN, NORM, client->login);
+			debugm ("connecion réussi");
 			return SUCCESS;
 		}
 	}while(tentative < 4);
 	
 	echecm("4 Tentatives");
-	
-	return FAIL;
-	
+	echecm("Vous n'avez pas pû vous connecter au serveur\nExiting...");
+	exit(FAIL);	
 }
 

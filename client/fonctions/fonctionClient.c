@@ -1,5 +1,9 @@
 /* PROTOTYPES */
 
+void warm(const char * war_msg)
+{
+	printf("%s: %s\n", WAR, war_msg);
+}
 
 void info(const char * info_msg)
 {
@@ -21,17 +25,24 @@ void echecm(const char * echec_msg)
 	printf("%s: %s\n", ECHEC, echec_msg);
 }
 
-void welcome_message(int argc, char * argv[]);
-int ask_login(struct user_t * client,  char * buffer);
+void greenm(const char * green_msg)
+{
+	printf("%s%s%s\n", GREEN, green_msg, NORM);
+}
 
 void welcome_message(int argc, char * argv[])
 {
 	int index = 0;
 
-	printf("Bienvenue sur Cbay, Application cliente !\n");
+	printf("\n\n\n\t----------------------------------------");
+	printf("\n\tBALBIANI.L		 TEIKITUHAAHAA.M\n");
+	printf("\n\tUPSSITECH		            STRI\n");
+	printf("\t----------------------------------------\n");
+	
+	greenm("\n\tBienvenue sur Cbay, Application Cliente!\n\n");
 	if(argc > 1)
 		{
-			fprintf(stdout, "[WAR]: Arguments in the launching command [IGNORING SOME]\n");
+			warm("Arguments in the launching command[IGNORING ELSE THAN DEBUG]");
 			while(index != argc)
 			{
 				if(strcmp(argv[index], "-debug") == 0)
@@ -41,7 +52,7 @@ void welcome_message(int argc, char * argv[])
 				fprintf(stdout, "ARGUMENT %d: %s \n", index, argv[index]);
 				index++;
 			}
-			fprintf(stdout, "[WAR]: MODE DEBUG ON\n");
+			warm("MODE DEBUG ON");
 			index = 0;
 		}
 }
@@ -56,52 +67,27 @@ void clean_b(char * buffer)
 	}
 }
 
-int ask_login(struct user_t * client, char * buffer)
+state rcv_socket(struct user_t * client, char * buffer)
 {
-	do
-	{
-		do
-		{
-				__fpurge(stdin);	
-				printf("Veuillez rentrer un login: ");		
-		}while ((scanf("%s", client->login) != 1 ));
-			if(debug) fprintf(stdout, "[DEBUG]: login: %s\n", client->login);
-			if(debug) fprintf(stdout, "[DEBUG]: REQ_VERIFY_LOGIN = %s\n", client->login); //DEBUG
-		clean_b(buffer);	
-		sprintf(buffer, "REQ_VERIFY_LOGIN = %s ", client->login);
-			if(debug) fprintf(stdout, "[DEBUG]: buffer: %s\n", buffer);
-		send(client->socket_fd, buffer, strlen(buffer) + 1, MSG_CONFIRM);
-			if(debug) fprintf(stdout, "[DEBUG]: Envoyé !\n");
-		clean_b(buffer);
-		// en attente de la réponse du serveur
-	}while(strncmp(buffer, "LOGIN_FREE", 10) == 0);	//Sort du while ssi la réponse du serveur est LOGIN_FREE
-	return SUCCESS;
-}
+	size_t size_recv;
+	
+	clean_b(buffer);
 
-int rcv_socket(struct user_t * client, char * buffer) // pb liée a tcp 
-{
-	size_t size_recv;	
-	char temp[2];
-	int index = 0;
-	
-	clean_b(buffer); clean_b(temp);
-	
-	usleep(10000);
 	do
 	{
-		size_recv = recv(client->socket_fd, temp, 1, MSG_WAITALL);
+		usleep(10000);
+		size_recv = recv(client->socket_fd, buffer, 1024, MSG_DONTWAIT);
+		
 		if(size_recv == 0) // la connexion a été fermé
 		{
-			return FAIL;
+			errorm("Connexion fermée par le serveur");
+			close(client->socket_fd);
+			exit(FAIL);
 		}
-		buffer[index] = temp[0];
-		index++;
-			
-		debugm(buffer);	
-		
-	}while(buffer[index - 1] != '\n');
-	buffer[index] ='\0';
 
+	}while(size_recv == -1);	
+	debugm("buffer:");
+	debugm(buffer);	
 	return SUCCESS;
 }
 

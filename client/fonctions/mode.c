@@ -52,7 +52,8 @@ mode req_mode(struct user_t * client)
 			
 		case 3:	// ADMIN
 			clean_b(buffer);	
-			sprintf(buffer, "REQ_MODE = ADMIN FOR %ld", client->uid);
+			sprintf(buffer, "REQ_MODE = ADMIN FOR %ld \n", client->uid);
+			debugm(buffer);
 			send_socket(client, buffer);
 			
 			if(rcv_socket(client, buff) == -1) // réponse du serveur

@@ -37,8 +37,6 @@ int main (int argc, char * argv[])
 	struct sockaddr_in nom_server;
 	struct sockaddr nom_client;
 	socklen_t len_nom_client;
-	
-	size_t size_recv;
 
 	/* variables liées aux client */
 	struct user_t client;
@@ -48,9 +46,9 @@ int main (int argc, char * argv[])
 	welcome_message(argc, argv);
 
 	//CHARGEMENT DES PARAMETRES
-	fprintf(stdout, "[INFOS]: Chargement des paramètres du serveurs\n");
+	info("Chargement des paramètres du serveurs");
 	load_server(&server);
-	fprintf(stdout, "[INFOS]: Chargement des paramètres terminés\n\n\n");
+	info("Chargement des paramètres terminés\n\n");
 	screen_server(server);
 	
 	//PREPARATION DES CONNEXIONS
@@ -60,37 +58,31 @@ int main (int argc, char * argv[])
 	//ATTENTE DE CONNEXION D'UN CLIENT	
 	if(listen(socklis, 1) == -1)
 	{
-		fprintf(stderr, "[ERROR]: listen(): %s\nExiting...\n", strerror(errno));
-		exit(-1);
+		errorm("listen()\nExiting...\n");
+		exit(FAIL);
 	}
-	fprintf(stdout, "\n\n***[WAR]: ATTENTE DE CONNEXION ***\n\n");
+	
 	while(1)
 {	
+	fprintf(stdout, "\n\n*** ATTENTE DE CONNEXION ***\n\n");
 	//CONNECTION
 	len_nom_client = sizeof(nom_client);
-	client.socket_fd = accept(socklis, &nom_client, &len_nom_client);
-	if(client.socket_fd == -1)
-	 {
-		fprintf(stderr, "[ERROR]: accept(): %s\nExiting...\n", strerror(errno));
-		exit(-1);
-	 }
-	fprintf(stdout, "*** CONNECTED TO CLIENT ***\n");
 	
-		while(client.socket_fd > 0) // TANT QUE LE CLIENT EST CONNECTE
+	client.socket_fd = accept(socklis, &nom_client, &len_nom_client);
+	
+	if(client.socket_fd == -1)
+	{
+		errorm("Impossible d'accepter une connexion sur le socket\nExiting...");
+		exit(-1);
+	}
+	
+	greenm("*** CONNECTED TO CLIENT ***\n");
+	
+		while(client.socket_fd >= 0) // TANT QUE LE CLIENT EST CONNECTE
 		{
+			
 			clean_b(buffer);	
-			do
-			{
-				size_recv = recv(client.socket_fd, buffer, sizeof(buffer), MSG_DONTWAIT);
-				usleep(10000); //PAUSE DE 10 mS	
-				if(size_recv == 0)
-				{
-					client.socket_fd = 0;
-					printf("%s: Client déconnecté\n", WAR);
-					break;
-				}
-			}while(size_recv == -1);		
-			if(debug) fprintf(stdout, "[DEBUG]: Buffer: %s\n", buffer);
+			rcv_socket(&client, buffer);
 			
 			if(0)
 			{
@@ -165,6 +157,8 @@ int main (int argc, char * argv[])
 			}
 			else
 			{
+				close(client.socket_fd);
+				client.socket_fd = -1;
 			}
 			
 		}
@@ -172,5 +166,5 @@ int main (int argc, char * argv[])
 	
 	
 	shut_server(&server);
-	exit(0);
+	exit(SUCCESS);
 }	

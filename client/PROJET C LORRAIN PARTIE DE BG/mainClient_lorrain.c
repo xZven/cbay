@@ -106,9 +106,6 @@ int main(int argc, char * argv[])
  	 * Administrateur: Permet de gérer les objets vendus aux enchères
  	 */
 
-printf("Connexion en tant que:\n 1-acheteur\n 2-vendeur\n 3-Administrateur(nécessite les droits)");
-scanf("%d", &mode);
-
 /**/*/**/
 // SI MODE ACHETEUR
 
@@ -176,54 +173,9 @@ printf("Vous avez choisi la catégorie %s", tableau[choix]);
 
 
 // SI MODE VENDEUR
-else if (mode == 2){
-	sprintf(buff, "REQ_MODE = BUY FOR %ld \n", client->uid);
-	send_socket(client, buff); clean_b(buffer);
-	rcv_socket(client, buffer);
-	if(strcmp(buffer, "MODE = BUY FOR %ld \n") == 0){
-		printf("Vous êtes sur le point de vendre un de vos biens, prenez garde...");
-	else
-		printf("erreur serveur, vous allez être déconnecté...");
-	exit;
-	}
-
-
-do	{
-	printf("Que souhaitez-vous faire?\n 1-consulter mon historique de ventes\n 2-gérer mes ventes en cours\n 3-ajouter un nouvel objet en vente\n")
-	}
-while ((scanf("%d", &choix) != 1 ) && ((choix != 1) && (choix != 2) && (choix != 3));
-
-if(choix == 1) //historique des ventes
-	
-
-sprintf(buff, "REQ_ITEM_SOLD = %ld \n", client->uid);
-	send_socket(client, buff); clean_b(buffer);
-	rcv_socket(client, buffer);
-//HELP ME BREAUUUUUU pour la récpetion des données des objets et surtout leur affichage...
-
-}
-if(choix == 2))
-	sprintf(buff, "REQ_ITEM_USER = %ld \n", client->uid);
-	send_socket(client, buff); clean_b(buffer);
-	rcv_socket(client, buffer);
-//HELP ME BREAUUUUUU pour la récpetion des données des objets et surtout leur affichage...
-
-}
-
-if(choix == 3)
-	
 
 
 
-
-
-	
-
-
-
-
-
-}
  // SI MODE ADMINISTRATEUR
 
  // FERMETURE DES CONNEXIONS ET LIBERATIONS DES RESSOURCES

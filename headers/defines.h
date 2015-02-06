@@ -40,6 +40,8 @@
 
 // VARIABLES GLOBAL
 int debug; 						// Utilisé pour le mode debug
+char auth_file[50];
+char object_file[50];
 
 // TYPEDEF
 typedef time_t unique_id_t; 	// UNIQUE ID
