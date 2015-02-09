@@ -4,8 +4,8 @@
 struct user_t 				
 {
 	unique_id_t uid; 		// IDENTIFIANT UNIQUE
-	char login[21];			// NOM D'UTILISATEUR
-	char password[21];		// MOT DE PASSE
+	char login[51];			// NOM D'UTILISATEUR
+	char password[51];		// MOT DE PASSE
 	bool admin;				// MODE (TRUE or FALSE)
 	char mode;				// MODE DE CONNEXION (a, b ou s)
 	time_t last_connect;	// HEURE DE LA DERNIERE CONNEXION (format seconde)

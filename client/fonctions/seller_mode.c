@@ -38,11 +38,8 @@ state seller_mode(struct user_t * client, char * buffer)
 				index = 0;
 				do // affichage des item vendu
 				{
-					if(rcv_socket(client, buffer) == -1) // réception
-					{
-						errorm("Erreur lors de la réception");
-						return FAIL;
-					}
+					rcv_socket(client, buffer); // réception
+					
 					debugm("BUFFER:");
 					debugm(buffer);
 					if(strcmp("END_ITEM \n", buffer) == 0) // si c'est la fin de l'affichage
@@ -59,7 +56,7 @@ state seller_mode(struct user_t * client, char * buffer)
 					else
 					{
 					
-						if(sscanf(buffer, "ITEM = %ld %s %s %f %f %d \n",
+						if(sscanf(buffer, "ITEM = %ld + %51[A-Za-z0123456789 ] + %51[A-Za-z ] + %f + %f + %d \n",
 							&vente[index].uid,
 							vente[index].name,
 							vente[index].category,
@@ -72,20 +69,20 @@ state seller_mode(struct user_t * client, char * buffer)
 						
 						
 						
-						printf("%d - %ld\n\tNom:%s [%s]\n\tPrix de départ:%f\n\tPrix final:%f\n\tQuantité:%d\n\n", index + 1,
-							vente[index].uid,
-							vente[index].name,
-							vente[index].category,
-							vente[index].start_price,
-							vente[index].final_price,
-							vente[index].quantity);
+						printf("%d - \tUID:%ld\n\tNom: %s\n\tCatégorie: %s\n\tPrix de départ: %f Euro\n\tDernier enchère: %f Euro\n\tQuantité: %d\n\n", index + 1,
+							bid[index].uid,
+							bid[index].name,
+							bid[index].category,
+							bid[index].start_price,
+							bid[index].final_price,
+							bid[index].quantity);
 						index++;
 					}
 						
 				}while(1);
 				break;
 			}
-			case 2: // gérer les vente en cours
+			case 2: // gérer les vente en cours /* une opération à finir */
 			{
 				debugm("Gestion des ventes en cours");
 				clean_b(buffer);
@@ -93,13 +90,9 @@ state seller_mode(struct user_t * client, char * buffer)
 				debugm(buffer);
 				send_socket(client, buffer); clean_b(buffer);
 				index = 0;
-				do // affichage des item vendu
+				do // affichage des item
 				{
-					if(rcv_socket(client, buffer) == -1) // réception
-					{
-						errorm("Erreur lors de la réception");
-						return FAIL;
-					}
+					rcv_socket(client, buffer); // réception
 					if(strcmp("END_ITEM \n", buffer) == 0) // si c'est la fin de l'affichage
 					{
 						printf("\nFIN D'AFFICHAGE\n");
@@ -177,11 +170,7 @@ state seller_mode(struct user_t * client, char * buffer)
 						sprintf(buffer, "REQ_OP = DELETE_BID ON %ld \n", bid[choix_item-1].uid);
 						send_socket(client, buffer);
 						debugm(buffer);
-						if(rcv_socket(client, buffer) == -1) // attente de la réponse
-						{
-							errorm("Erreur lors de la réception");
-							return FAIL;
-						}
+						rcv_socket(client, buffer); // réception
 						debugm("BUFFER:");
 						debugm(buffer);
 						if(strncmp("OP_OK", buffer,5) == 0) // s
@@ -203,11 +192,7 @@ state seller_mode(struct user_t * client, char * buffer)
 						clean_b(buffer);
 						sprintf(buffer, "REQ_OP = CANCEL_BID ON %ld \n", bid[choix_item-1].uid);
 						send_socket(client, buffer);
-						if(rcv_socket(client, buffer) == -1) // attente de la réponse
-						{
-							errorm("Erreur lors de la réception");
-							return FAIL;
-						}
+						rcv_socket(client, buffer); // réception
 						debugm("BUFFER:");
 						debugm(buffer);
 						if(strncmp("OP_OK", buffer,5) == 0) // s
@@ -228,11 +213,7 @@ state seller_mode(struct user_t * client, char * buffer)
 					{
 					clean_b(buffer);
 						sprintf(buffer, "REQ_OP = END_BID ON %ld \n", bid[choix_item-1].uid);
-						if(rcv_socket(client, buffer) == -1) // réception
-						{
-							errorm("Erreur lors de la réception");
-							return FAIL;
-						}
+						rcv_socket(client, buffer); // réception
 						debugm("BUFFER:");
 						debugm(buffer);
 						if(strncmp("OP_OK", buffer,5) == 0) // s
@@ -302,11 +283,7 @@ state seller_mode(struct user_t * client, char * buffer)
 				
 				debugm(buffer);
 				send_socket(client, buffer); clean_b(buffer);
-				if(rcv_socket(client, buffer) == -1) // réception
-				{
-					errorm("Erreur lors de la réception");
-					return FAIL;
-				}
+				rcv_socket(client, buffer); // réception
 				debugm("BUFFER:");
 				debugm(buffer);
 				if(strcmp("ITEM_ADDED \n", buffer) == 0) // l'objet a bien été ajouté

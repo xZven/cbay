@@ -92,8 +92,11 @@ state req_new_user(struct user_t * client,  struct server_t * server, char * buf
 //
 state req_connect(struct user_t * client,  struct server_t * server, char * buffer)
 {
+	char cmd[100];
 	char ligne[512];
 	struct user_t temp_client;
+	FILE * temp_file;
+	
 	
 	info("Requête de connexion");
 	if(sscanf(buffer,"REQ_CONNECT = %s + %s \n", client->login, client->password) != 2)
@@ -104,8 +107,17 @@ state req_connect(struct user_t * client,  struct server_t * server, char * buff
 	}
 	clean_b(buffer);
 	
-	fseek(server->auth_file, 0, SEEK_SET); // RESET FILE
+	temp_file = tmpfile();
+	if(temp_file == NULL)
+	{
+		errorm("Erreur création fichier temporaire");
+		exit(FAIL);
+	}
 	
+	rewind(server->auth_file); // RESET FILE
+	rewind(temp_file);
+	
+	debugm("rechercher ligne");
 	while(fgets(ligne, sizeof(ligne), server->auth_file) != NULL)
 	{
 		debugm(ligne);
@@ -117,36 +129,62 @@ state req_connect(struct user_t * client,  struct server_t * server, char * buff
 		}
 		else
 		{	
-			debugm("Décodage de la ligne réussi:");
-			debugm("Login");
-			debugm(temp_client.login);
-			debugm("Password");
-			debugm(temp_client.password);
-
 		 	if(strcmp(client->login,temp_client.login) == 0)
 			{
-				debugm("Login trouvé");
 				if(strcmp(client->password, temp_client.password) == 0)
 				{
-					debugm("Password OK");
 				/***********************************************************/
 					client->uid = temp_client.uid;
+					client->admin = temp_client.admin;
 					time(&(client->last_connect));
+					
+					
 					sprintf(buffer, "USER_CONNECTED = %ld \n", client->uid);
 					send_socket(client, buffer);
 					clean_b(buffer);
+					
+					encode_user(client, ligne); debugm(ligne);
+					fputs(ligne, temp_file);
+					
+					debugm("On recopie les autres ligne dans temp");
+					while(fgets(ligne, sizeof(ligne), server->auth_file) != NULL)
+					{
+						debugm(ligne);
+						fputs(ligne, temp_file);
+					}
+					
+					debugm("Supression du contenue du fichier auth");
+					sprintf(cmd, "echo -n "" > %s", auth_file);
+					system(cmd);
+					
+					rewind(server->auth_file);
+					rewind(temp_file);
+					
+					debugm("Recopie du fichier temp");
+					while(fgets(ligne, sizeof(ligne), temp_file) != NULL)
+					{ 
+						debugm(ligne);
+						fputs(ligne, server->auth_file);						
+					}
+					
+					
+					rewind(server->auth_file);
+
+				fclose(temp_file);
 				/***********************************************************/
 					log_connect(client, server);					
 					info("La requête s'est terminée avec succès !"); 
 					printf("Utilisateur connecté: %s\n", client->login);
 					return CONNECT_SUCCESS;
 				}
-				else
+				else // mauvais mot de passe
 				{
 					error_msg(client, "0x012");
 					return CONNECT_FAIL;
 				}
 			}
+			else 
+				fputs(ligne, temp_file);
 		}
 	}
 	
@@ -165,20 +203,24 @@ state req_mode(struct user_t * client, struct server_t * server, char * buffer)
 	unique_id_t client_uid;
 	
 	info("Requête du mode d'utilisateur");
-	if(sscanf(buffer,"REQ_MODE = %s FOR %ld \n", mode, &client_uid) != 2);
+	 
+	sscanf(buffer,"REQ_MODE = %s FOR %ld \n", mode, &client_uid);
+/*	if(0);
 	{
 		errorm("Impossible d'extraire la requête");
 		error_msg(client, "0x999"); 
-		close(client->socket_fd);
+		close(client->socket_fd); // fermeture de la connexion
+		client->socket_fd = -1;
 		return FAIL;
-	}
+	} */
+	
 	clean_b(buffer);
 	
-	if(client_uid == client->uid)
+	if(client_uid == client->uid) // vérification du client connecté et de la requête
 	{
-		if(strcmp(mode, "ADMIN") == 0) // vérifié si la ligne est remplacé
+		if(strcmp(mode, "ADMIN") == 0) // on analyse le mode demandé
 		{
-			if(client->admin == TRUE)
+			if(client->admin == TRUE) // s'il a le droit au mode admin
 			{
 				client->mode = 'a';
 				sprintf(buffer, "MODE = %s FOR %ld \n", mode, client->uid);
@@ -188,7 +230,7 @@ state req_mode(struct user_t * client, struct server_t * server, char * buffer)
 			}
 			else
 			{
-				warm("Un utilisateur a essayé d'obtenir le mode utilisateur");
+				warm("Un utilisateur a essayé d'obtenir le mode administrateur alors qu'il n'est pas autorisé");
 				error_msg(client, "0x021");
 				return FAIL;
 			}
@@ -197,17 +239,17 @@ state req_mode(struct user_t * client, struct server_t * server, char * buffer)
 		{
 			client->mode = 'b';
 			sprintf(buffer, "MODE = %s FOR %ld \n", mode, client->uid);
-					send_socket(client, buffer);
-				clean_b(buffer);
-				return SUCCESS;
+			send_socket(client, buffer);
+			clean_b(buffer);
+			return SUCCESS;
 		}
 		else if(strcmp(mode, "SELL") == 0)
 		{
 			client->mode = 's';
 			sprintf(buffer, "MODE = %s FOR %ld \n", mode, client->uid);
-					send_socket(client, buffer);
-				clean_b(buffer);
-				return SUCCESS;
+			send_socket(client, buffer);
+			clean_b(buffer);
+			return SUCCESS;
 		}
 		else
 		{
@@ -222,54 +264,97 @@ state req_mode(struct user_t * client, struct server_t * server, char * buffer)
 	}
 }
 
-
+//
 state req_new_pw(struct user_t * client, struct server_t * server, char * buffer)
 {
 	
-	char new_pw[20];
-	char client_login[20];
-	char ligne[128];
+	char new_pw[51];
+	char client_login[51];
+	char ligne[2048];
+	char cmd[100];
 	unique_id_t client_uid;	
 	struct user_t temp_client;
 	
+	FILE * temp_file;
 	
-	if(debug)printf("[DEBUG] = req_new_pw\n");
 	
-	if(sscanf(buffer,"REQ_NEW_PW = %s ON %s BY %ld \n", new_pw, client_login, &client_uid) != 3);
+	info("Requête de changement de mot de passe");
+	
+	sscanf(buffer,"REQ_NEW_PW = %s ON %s BY %ld \n", new_pw, client_login, &client_uid);
+	if(0)
 	{
 		printf("%s %s %ld\n", new_pw, client_login, client_uid);
-		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
+		errorm("Impossible d'extraire la requête");
 		error_msg(client, "0x999");
 		return FAIL;
 	}
-	if(debug)printf("[DEBUG]: Cleanning buffer\n");
-	clean_b(buffer);	
-	if(debug)printf("[DEBUG]: Extraction de la requête réussi");
+	clean_b(buffer);
+	
+	temp_file = tmpfile();
+	if(temp_file == NULL)
+	{
+		errorm("Erreur création fichier temporaire");
+		exit(FAIL);
+	}
+	
+	rewind(server->auth_file);
+	rewind(temp_file);
 	
 	if(client_uid == client->uid && client->admin == TRUE) // vérification user == admin
 	{
+		debugm("Début de la recherche...");
 		while(fgets(ligne, sizeof(ligne), server->auth_file) != NULL)
 		{
-			if(decode_user(&temp_client, ligne) == FAIL)
+			debugm(ligne);
+			decode_user(&temp_client, ligne);
+			
+			if(strcmp(temp_client.login, client_login) == 0) // utilisateur à modifié trouvé !
 			{
-				fprintf(stderr,"[ERROR]: Erreur modification de mot de passe: %s\n", strerror(errno));
-				error_msg(client, "0x999");
-				return FAIL;
-			}
-			if(strcmp(temp_client.login, client_login) == 0)
-			{
-				if(temp_client.admin != TRUE)
+				debugm("Utilisateur trouvé !");
+				
+				if(temp_client.admin != TRUE)				 // utilisateur à modifier n'est pas un admin
 				{
-					if(temp_client.password != new_pw)
+					debugm("L'utilisateur n'est pas un admin");
+					if(temp_client.password != new_pw)		 // si le nouveau mot de passe est différent de l'ancien
 					{
 						strcpy(temp_client.password, new_pw);
-						fseek(server->auth_file, -(strlen(ligne)),SEEK_CUR);
-						encode_user(&temp_client, ligne);
-						fprintf(server->auth_file,"%s \n", ligne);
-						/***************************************************/
+						
+						
+						encode_user(&temp_client, ligne); debugm(ligne);
+						debugm(ligne);
+						fputs(ligne, temp_file);
+						
+						
 						sprintf(buffer, "PASSWORD_CHANGED \n");
 						send_socket(client, buffer);
 						clean_b(buffer);
+					
+						debugm("On recopie les autres ligne dans temp");
+						while(fgets(ligne, sizeof(ligne), server->auth_file) != NULL)
+						{
+							debugm(ligne);
+							fputs(ligne, temp_file);
+						}
+						
+						debugm("Supression du contenue du fichier auth");
+						sprintf(cmd, "echo -n "" > %s", auth_file);
+						system(cmd);
+						
+						rewind(server->auth_file);
+						rewind(temp_file);
+						
+						debugm("Recopie du fichier temp");
+						while(fgets(ligne, sizeof(ligne), temp_file) != NULL)
+						{ 
+							debugm(ligne);
+							fputs(ligne, server->auth_file);						
+						}
+						
+						
+						rewind(server->auth_file);
+
+						fclose(temp_file);					
+							
 						return SUCCESS;
 					}
 					else
@@ -286,94 +371,38 @@ state req_new_pw(struct user_t * client, struct server_t * server, char * buffer
 			}
 			else
 			{
+				fputs(ligne, temp_file);
 			}				
 		}
 		error_msg(client, "0x042");
 	}
-	else
+	else // si l'utilisateur n'est pas un admin ou qu'il n'a pas les droits
 	{
-		if(debug)printf("[DEBUG]:User is not an admin, sending error...\n");
+		echecm("L'utilisateur n'est pas un administrateur");
 		error_msg(client, "0x041");
+		/* fermeture de la connexion */
+		close(client->socket_fd);
+		client->socket_fd = -1;
+		
 		return FAIL;
 	}
 
 	return FAIL;
 }
 
+//
 state req_del_user(struct user_t * client, struct server_t * server, char * buffer)
 {
 	unique_id_t client_uid;
-	char client_del_login[20];
+	struct user_t temp_client;
+	char client_del_login[21];	
 	char ligne[128];
-	size_t size_l = 0;
+	char cmd[100];
 	
-	fd_t fd;
+	FILE * temp_file;
 	
-	if(debug)printf("[DEBUG] = req_del_user\n");
-	if(debug)printf("[DEBUG] = buffer: %s \n", buffer);
-	
+	debugm("Requête de supression d'un utilisateur");	
 	if(sscanf(buffer,"REQ_DEL_USER = %s BY %ld \n", client_del_login, &client_uid) != 2)
-	{
-		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
-		error_msg(client, "0x999");
-		return FAIL;
-	}
-	if(debug)printf("[DEBUG]: Cleanning buffer\n");
-	clean_b(buffer);
-	
-	if(debug)printf("[DEBUG]: Extraction de la requête réussi\n");
-	
-	if(debug)printf("[DEBUG]:Création du fichier virtuelle (pipe)\n");
-	if(pipe(&fd) == -1)
-	{
-		fprintf(stderr,"[ERROR]: Erreur creation d'un pipe (req_del_user): %s\n", strerror(errno));
-		error_msg(client, "0x999");
-		return FAIL;
-	}
-	if(debug)printf("[DEBUG]:PIPE OK\n");
-		
-	if(client_uid == client->uid && client->admin == TRUE)
-	{
-		if(debug)printf("[DEBUG]: Lecture ligne pas ligne du fichier\n");
-		while(fgets(ligne, sizeof(ligne), server->auth_file) != NULL)
-		{
-			if(strcmp(client_del_login, ligne) <= 0) // SI CE N'EST PAS LA LIGNE A IGNOREE
-			{
-				size_l = strlen(ligne);
-				write(fd, ligne, size_l);
-			}
-			else
-			{
-				// NE RIEN FAIRE
-			}
-		}
-		
-		// RECOPIE DU NOUVEAU FICHIER
-		system("echo > auth_file.bin");
-		lseek(fd, 0, SEEK_SET);
-		while(read(fd, ligne, size_l) != 0)
-		{
-			fputs(ligne, server->auth_file);
-		}		
-	}
-	else
-	{
-		if(debug)printf("[DEBUG]:User is not an admin, sending error...\n");
-		error_msg(client, "0x042");
-		return FAIL;
-	}
-	return SUCCESS;
-}
-
-state req_all_item(struct user_t * client, struct server_t * server, char * buffer)
-{
-	
-	struct object_t temp_item;
-	unique_id_t client_uid;
-	char ligne[256];
-	
-	
-	if(sscanf(buffer,"REQ_DEL_USER BY %ld \n", &client_uid) != 1)
 	{
 		errorm("Impossible d'extraire la requête");
 		error_msg(client, "0x999");
@@ -381,22 +410,95 @@ state req_all_item(struct user_t * client, struct server_t * server, char * buff
 	}
 	clean_b(buffer);
 	
-	if(client_uid == client->uid) 							 // IF ADMIN
+	temp_file = tmpfile();
+	if(temp_file == NULL)
 	{
-		fseek(server->object_file, 0, SEEK_SET);
+		errorm("Erreur création fichier temporaire");
+		exit(FAIL);
+	}
+	
+	rewind(server->auth_file);
+	rewind(temp_file);
+		
+	if(client_uid == client->uid && client->admin == TRUE)		// si le client connecté est un admin
+	{
+		debugm("Début de la recherche");
+		while(fgets(ligne, sizeof(ligne), server->auth_file) != NULL)
+		{
+			decode_user(&temp_client, ligne);
+			debugm(ligne);
+			if(strcmp(temp_client.login, client_del_login) == 0) // si c'est l'utilisateur à supprimer
+			{
+				debugm("Utilisateur à supprimé trouvé !");
+				/* on ignore la ligne */
+			}
+			else
+			{
+				fputs(ligne, temp_file);
+			}
+		}
+		
+		debugm("Supression du contenue du fichier auth");
+		sprintf(cmd, "echo -n "" > %s", auth_file);
+		system(cmd);
+						
+		rewind(server->auth_file);
+		rewind(temp_file);
+		
+		while(fgets(ligne, sizeof(ligne), temp_file) != NULL)
+		{
+			fputs(ligne, server->auth_file);
+		}
+		
+		rewind(server->auth_file);
+		fclose(temp_file);
+	}
+	else
+	{
+		echecm("L'utilisateur n'est pas un administrateur, sending error");
+		error_msg(client, "0x042");
+		return FAIL;
+	}
+	
+	clean_b(buffer);
+	sprintf(buffer, "USER_DELETED = %s BY %s \n", client_del_login, client->login);
+	send_socket(client, buffer);
+	return SUCCESS;
+}
+
+//
+state req_all_item(struct user_t * client, struct server_t * server, char * buffer)
+{
+	
+	struct object_t temp_item;
+	unique_id_t client_uid;
+	char ligne[2048];
+	
+	
+	if(sscanf(buffer,"REQ_ALL_ITEM BY %ld \n", &client_uid) != 1)
+	{
+		errorm("Impossible d'extraire la requête");
+		error_msg(client, "0x999");
+		return FAIL;
+	}
+	clean_b(buffer);
+	
+	if(client_uid == client->uid && client->admin == TRUE) 							 // IF ADMIN
+	{
+		rewind(server->object_file);
 		
 		while(fgets(ligne, sizeof(ligne), server->object_file)) // GET EACH LINE
 		{
 			decode_item(client, &temp_item, ligne);			 // DECODE LINE
 			
-			sprintf(buffer, "ITEM = %ld %s %s %f %f %d \n" , 
+			sprintf(buffer, "ITEM = %ld + %s + %s + %f + %f + %d \n" , 
 				temp_item.uid,
 				temp_item.name,
 				temp_item.category,
 				temp_item.start_price,
 				temp_item.temp_price,
 				temp_item.quantity);						 // FORMAT
-			
+			usleep(10000);
 			send_socket(client, buffer);					 // SEND
 			
 			clean_b(buffer);								 // CLEAN BUFFER
@@ -405,14 +507,15 @@ state req_all_item(struct user_t * client, struct server_t * server, char * buff
 	}
 	else													 // IF NOT ADMIN
 	{
-		error_msg(client, "0x042");
+		error_msg(client, "0x041");
 		return FAIL;
 	}
 	
+	usleep(10000);
 	sprintf(buffer, "END_ITEM \n");
 	send_socket(client, buffer);					 		 // SEND
 	clean_b(buffer);								 	 	 // CLEAN BUFFER
-	fseek(server->object_file, 0, SEEK_SET);				 // RESET FILE
+	rewind(server->object_file);				 // RESET FILE
 	return SUCCESS;
 }
 
@@ -434,7 +537,8 @@ state req_op(struct user_t * client, struct server_t * server, char * buffer)
 		return FAIL;
 	}
 	clean_b(buffer);
-	temp_file = fopen("./temp_file.bin", "w+");
+	
+	temp_file = tmpfile();
 	if(temp_file  == NULL)
 	{
 		errorm("Erreur lors de l'ouverture du fichier temporaire (req_del_user)");
@@ -442,10 +546,12 @@ state req_op(struct user_t * client, struct server_t * server, char * buffer)
 		return FAIL;
 	}
 	
-	fseek(server->object_file, 0, SEEK_SET);				 // RESET FILE
+	rewind(temp_file);
+	rewind(server->object_file);				 // RESET FILE
 	
-	while(fgets(ligne, sizeof(ligne), server->object_file) != NULL) 	 // GET ITEM LINE
+	while(fgets(ligne, sizeof(ligne), server->object_file) != NULL) 	 // GET EACH LINE
 	{
+		debugm(ligne);
 		decode_item(client, &temp_item, ligne);			 	 // DECODE LINE
 		if(temp_item.uid == item_uid)					 	 // IF ITEM FOUND
 		{
@@ -459,6 +565,11 @@ state req_op(struct user_t * client, struct server_t * server, char * buffer)
 				temp_item.temp_price = 0;
 				encode_item(client, &temp_item, ligne);					
 				fputs(ligne, temp_file);
+				 log_cancel_bid(client, &temp_item, server);
+			}
+			else if(strcmp(op, "END_BID") ==0)
+			{
+				//
 			}
 			else										 	 // IF ELSE
 			{
@@ -472,51 +583,52 @@ state req_op(struct user_t * client, struct server_t * server, char * buffer)
 		}
 	}
 	
-	debugm("copie terminée\n refopen");
+	clean_b(buffer);	
+	sprintf(buffer, "OP_OK = %s FOR %ld BY %s \n", op, item_uid, client->login); // formatage de la réponse
+	debugm(buffer);
+	send_socket(client, buffer);		// SEND
 	
-	sprintf(cmd, "echo -n "" > %s", object_file);
-	system(cmd);
+	debugm("copie terminée");
+	debugm("Supression du contenue");
 	
-	rewind(server->object_file);
+	sprintf(cmd, "echo -n "" > %s", object_file); 
+	system(cmd); 									// suppression contenue du fichier
+	
+	rewind(server->object_file);				// RESET FILE
 	rewind(temp_file);
 
-	while(fgets(ligne, sizeof(ligne), temp_file))
+	while(fgets(ligne, sizeof(ligne), temp_file) != NULL)
 	{ 
-		if(fputs(ligne, server->object_file) == EOF)
-		{
-			warm("Erreur lors de la recopie de temp_file vers object_file");
-			error_msg(client, "0x999");
-			return FAIL;
-		}
+		debugm(ligne);
+		fputs(ligne, server->object_file);
 	}
-
+	rewind(server->object_file);				// RESET FILE
 	fclose(temp_file);
-	remove("./temp_file.bin");
-	clean_b(buffer);	
-	sprintf(buffer, "OP_OK = %s FOR %ld BY %s \n", op, item_uid, client->login);
-	debugm(buffer);
-	send_socket(client, buffer);
-	info("la requête s'est terminée avec succès");
+	
+	info("la requête s'est terminée avec succès");	
 	return SUCCESS;
 	
 }
 
+//
 state req_item_sold(struct user_t * client, struct server_t * server, char * buffer)
 {
 	struct object_t temp_item;
 	char user[20];
-	char ligne[256];
+	char ligne[2048];
 	
 	info("Requête d'affichage des objets vendu");
 	if(sscanf(buffer,"REQ_ITEM_SOLD = %s \n", user) != 1)
 	{
-		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
+		errorm("Impossible d'extraire la requête");
 		error_msg(client, "0x999");
 		return FAIL;
 	}
 	clean_b(buffer);
 	
-	fseek(server->object_file, 0, SEEK_SET);
+	rewind(server->object_file);
+	
+	/* on regarde si la reqûete correspond au client connecté */
 	
 	if(strcmp(user,client->login) == 0)						  // CHECKING USERNAME
 	{
@@ -525,33 +637,38 @@ state req_item_sold(struct user_t * client, struct server_t * server, char * buf
 		{
 			decode_item(client, &temp_item, ligne);			  // DECODE LINE
 			
+			usleep(10000);
+			/* si l'item appartient au client connecté et si son prix final est positif (vendu) */
 			if((temp_item.vendeur == client->uid) && (temp_item.final_price > 0))			  // IF CLIENT -> ITEM
 			{
-				sprintf(buffer, "ITEM = %ld %s %s %f %f %f %d \n" , 
+				sprintf(buffer, "ITEM = %ld + %s + %s + %f + %f + %d \n" , 
 				temp_item.uid,
 				temp_item.name,
 				temp_item.category,
 				temp_item.start_price,
-				temp_item.temp_price,
 				temp_item.final_price,
 				temp_item.quantity);						 // FORMAT
-			
+			debugm(buffer);
 			send_socket(client, buffer);					 // SEND			
 			clean_b(buffer);								 // CLEAN BUFFER
 			
 			}
 		}
 		
+		usleep(10000);
 		sprintf(buffer, "END_ITEM \n");
+		debugm(buffer);
 		send_socket(client, buffer);					 		 // SEND
 		clean_b(buffer);								 	 	 // CLEAN BUFFER
-		fseek(server->object_file, 0, SEEK_SET);				 // RESET FILE
+		rewind(server->object_file);				 			 // RESET FILE
 		return SUCCESS;
 	}
-	
-	error_msg(client, "0x062");
-	warm("Impossible de répondre à la requête !");
-	return FAIL;
+	else // si ce n'est pas l'utilisateur ...
+	{
+		error_msg(client, "0x062");
+		warm("Impossible de répondre à la requête !");
+		return FAIL;
+	}
 	
 }
 
@@ -561,7 +678,7 @@ state req_item_user(struct user_t * client, struct server_t * server, char * buf
 	
 	struct object_t temp_item;
 	unique_id_t user_uid;
-	char ligne[256];
+	char ligne[2048];
 	
 	info("Requête d'affichage des ventes en cours reçu");
 	if(sscanf(buffer,"REQ_ITEM_USER = %ld \n", &user_uid) != 1)
@@ -668,7 +785,6 @@ state put_new_item(struct user_t * client, struct server_t * server, char * buff
 }
 
 
-
 state req_hist_item_bought(struct user_t * client, struct server_t * server, char * buffer)
 {
 	struct object_t temp_item;
@@ -727,6 +843,7 @@ state req_bid_user(struct user_t * client, struct server_t * server, char * buff
 	clean_b(buffer);
 	return SUCCESS;
 }
+
 state req_cat(struct user_t * client, struct server_t * server, char * buffer)
 {
 	int tabex = 0;

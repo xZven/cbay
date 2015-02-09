@@ -286,7 +286,7 @@ bool encode_user(struct user_t * client, char * ligne)
 { 
 	int n;
 	
-	n = sprintf(ligne, "%ld %s %s %d %ld", client->uid, client->login, client->password, client->admin, client->last_connect);
+	n = sprintf(ligne, "%ld %s %s %d %ld \n", client->uid, client->login, client->password, client->admin, client->last_connect);
 	if(n == 5)  // OK
 		return TRUE;
 	else		// !OK
@@ -371,7 +371,7 @@ bool encode_log(struct log_t * event, struct server_t * server)
 		event->date);
 	
 	fseek(server->log_file, 0, SEEK_END); // DEPALCEMENT DU CURSEUR en fin de fichier
-	fprintf(server->log_file, "%s\n",ligne);
+	fputs(ligne, server->log_file);
 	fseek(server->log_file, 0, SEEK_SET);
 	
 	return TRUE;

@@ -135,7 +135,7 @@ int main(int argc, char * argv[])
  	 * Administrateur: Permet de gérer les objets vendus aux enchères
  	 */
 	
-	req_mode(&client); 
+	req_mode(&client, buffer); 
 	if(client.mode == 'b') 			// SI MODE ACHETEUR
 	{
 		buyer_mode(&client, buffer);

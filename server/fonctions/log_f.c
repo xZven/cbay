@@ -53,4 +53,4 @@ void log_cancel_bid(struct user_t * client,struct object_t * item, struct server
 	
 	encode_log(&event, server);
 }
-	
+

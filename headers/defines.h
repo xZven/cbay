@@ -30,6 +30,7 @@
 #define INFO  "[\033[32mINFO\033[0m]"
 #define DEBUG_MSG "[\033[35mDEBUG\033[0m]"
 #define GREEN "\033[32m"
+#define RED   "\033[31m"
 #define NORM  "\033[0m"
 
 // mode de connexion

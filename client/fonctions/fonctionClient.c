@@ -30,6 +30,11 @@ void greenm(const char * green_msg)
 	printf("%s%s%s\n", GREEN, green_msg, NORM);
 }
 
+void redm(const char * red_msg)
+{
+	printf("%s%s%s\n", RED, red_msg, NORM);
+}
+
 void welcome_message(int argc, char * argv[])
 {
 	int index = 0;
