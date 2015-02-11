@@ -18,20 +18,20 @@ state seller_mode(struct user_t * client, char * buffer)
 			printf("\t 3 - Effectuer une nouvelle vente \n");
 			printf("\t 0 - Quitter le Programme \n");
 			printf("Choix[1|2|3|0]: ");
-		}while((scanf("%d", &choix) != 1 ) || choix > 3);
+		}while((scanf("%d", &choix) != 1 ) || choix > 3 || choix < 0);
 		
 		
-		switch(choix)
+		switch(choix) // selon le choix
 		{
 			case 0:
 				exit(SUCCESS);
 				break;
 			
-			case 1: // consulter l'Historique de vente de l'utilisateur
+			case 1: // consulter l'Historique de d'achat de l'utilisateur
 			{
 				debugm("Consultation de l'historique d'achat");
 				clean_b(buffer);
-				sprintf(buffer, "REQ_ITEM_SOLD = %s \n", client->login);
+				sprintf(buffer, "REQ_HIST_ITEM_BOUGHT = %ld \n", client->uid);
 				debugm(buffer);
 				send_socket(client, buffer); 
 				clean_b(buffer);
@@ -50,7 +50,7 @@ state seller_mode(struct user_t * client, char * buffer)
 					else if(strncmp("ERROR", buffer, 5) == 0) // si erreur 
 					{
 						echecm("Erreur reçu du serveur");
-						printf("%s", buffer);
+						printf(buffer);
 						break;
 					}
 					else

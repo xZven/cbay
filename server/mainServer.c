@@ -80,10 +80,10 @@ int main (int argc, char * argv[])
 	
 		while(client.socket_fd >= 0) // TANT QUE LE CLIENT EST CONNECTE
 		{
-			
+			expire_time(&client, &server);
 			clean_b(buffer);	
 			rcv_socket(&client, buffer);
-			
+			time(&server_time);
 			if(0)
 			{
 			}
@@ -139,7 +139,7 @@ int main (int argc, char * argv[])
 			{
 				req_bid_user(&client, &server, buffer);
 			}
-			else if(strncmp(buffer, "REQ_CAT", 				7) == 0)
+			else if(strncmp(buffer, "REQ_CAT ", 				8) == 0)
 			{
 				req_cat(&client, &server, buffer);
 			}

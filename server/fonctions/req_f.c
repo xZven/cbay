@@ -680,7 +680,7 @@ state req_item_user(struct user_t * client, struct server_t * server, char * buf
 	unique_id_t user_uid;
 	char ligne[2048];
 	
-	info("Requête d'affichage des ventes en cours reçu");
+	info("Requête d'affichage des ventes en cours");
 	if(sscanf(buffer,"REQ_ITEM_USER = %ld \n", &user_uid) != 1)
 	{
 		errorm("Impossible d'extraire la requête");
@@ -689,12 +689,12 @@ state req_item_user(struct user_t * client, struct server_t * server, char * buf
 	}
 	clean_b(buffer);
 	
-	fseek(server->object_file, 0, SEEK_SET);
+	rewind(server->object_file);
 	
 	if(user_uid == client->uid)						  // CHECKING USERNAME
 	{
 		
-		while(fgets(ligne, sizeof(ligne), server->object_file)) // GET EACH LINE
+		while(fgets(ligne, sizeof(ligne), server->object_file) != NULL) // GET EACH LINE
 		{
 			if(decode_item(client, &temp_item, ligne) == FAIL)			  // DECODE LINE
 			{
@@ -746,7 +746,7 @@ state put_new_item(struct user_t * client, struct server_t * server, char * buff
 	struct object_t temp_item;
 
 	info("Requête d'ajout dun nouvel objet au vente");
-	if(sscanf(buffer,"PUT_NEW_ITEM = %51[A-Za-z0123456789 ] + %51[A-Za-z ] + %1024[A-Za-z0123456789. ] + %99[A-Za-z0123456789:// ] + %f + %d + %99[A-Za-z0123456789 ]\n",
+	if(sscanf(buffer,"PUT_NEW_ITEM = %51[^+\n] + %51[^+\n] + %1024[^+\n] + %99[^+\n] + %f + %d + %99[^+\n] \n",
 		temp_item.name, 
 		temp_item.category, 
 		temp_item.description, 
@@ -767,6 +767,8 @@ state put_new_item(struct user_t * client, struct server_t * server, char * buff
 	temp_item.final_price = 0;
 	temp_item.vendeur = client->uid;
 	temp_item.acheteur = 0;
+	time(&temp_item.expire_time);
+	temp_item.expire_time = temp_item.expire_time + 3600; // temps d'expiration de 1H après avoir mis le nouvel objet
 	
 	encode_item(client, &temp_item, ligne); 	// encodage en chaine de caractères pour être placé dans le fichier
 	fseek(server->object_file, 0, SEEK_END);	// on se place à la fin du fichier
@@ -794,13 +796,13 @@ state req_hist_item_bought(struct user_t * client, struct server_t * server, cha
 	
 	if(sscanf(buffer,"REQ_HIST_ITEM_BOUGHT BY %ld \n", &user_uid) != 1)
 	{
-		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
+		errorm("Impossible d'extraire la requête");
 		error_msg(client, "0x999");
 		return FAIL;
 	}
 	clean_b(buffer);
 	
-	fseek(server->object_file, 0, SEEK_SET);
+	rewind(server->object_file);
 	
 	if(user_uid == client->uid)						  // CHECKING USERNAME
 	{
@@ -844,22 +846,25 @@ state req_bid_user(struct user_t * client, struct server_t * server, char * buff
 	return SUCCESS;
 }
 
+//
 state req_cat(struct user_t * client, struct server_t * server, char * buffer)
 {
 	int tabex = 0;
 	int index = 0;
 	bool egal = FALSE;
 	struct object_t temp_item;
-	char ligne[256];
-	char * category[10]; 
+	char ligne[2048];
+	char  category[50][50]; 
 	
 	clean_b(buffer);
 	
-	fseek(server->object_file, 0, SEEK_SET);	
-	while(fgets(ligne, sizeof(ligne), server->object_file)) // GET EACH LINE
+	info("Requête des catégorie du serveur");
+	rewind(server->object_file);	
+	while(fgets(ligne, sizeof(ligne), server->object_file) != NULL ) // GET EACH LINE
 	{	
 		egal = FALSE;
-		decode_item(client, &temp_item, ligne);			  // DECODE LINE
+		if(decode_item(client, &temp_item, ligne) == FAIL)			  // DECODE LINE
+			break;
 		while(index < tabex)
 		{ // il faut que ca soit pareil qu'une seule fois pour sortir
 			if(strcmp(category[index],temp_item.category) == 0)
@@ -881,55 +886,61 @@ state req_cat(struct user_t * client, struct server_t * server, char * buffer)
 	while((index <= tabex) && ((strlen(category[index]) > 0)))
 	{
 		sprintf(buffer, "CATEGORY = %s \n", category[index]);
+		debugm(buffer);
+		usleep(10000);
 		send_socket(client, buffer);					 		 // SEND
 		clean_b(buffer);								 	 	 // CLEAN BUFFER
 		index++;
 	}
 	
-	sprintf(buffer, "END_CATEGORY \n");
 	
-	fseek(server->object_file, 0, SEEK_SET);				 // RESET FILE
+	sprintf(buffer, "END_CATEGORY \n");
+	debugm(buffer);
+	usleep(10000);
+	send_socket(client, buffer);					 		 // SEND
+	
+	rewind(server->object_file);							// RESET FILE
+	
+	info("La requête a bien aboutit");
 	return SUCCESS;
-
-/*	
-	error_msg(client, "0x062");
-	return FAIL;
-*/
 }
 
-
+//
 state req_cat_access(struct user_t * client, struct server_t * server, char * buffer)
  {
  
 	char category[50];
-	char ligne[256];
+	char ligne[2048];
 	struct object_t temp_item;
+	
+	info("Requête d'accès au objet d'une catégorie");
 	
 	if(sscanf(buffer,"REQ_CAT_ACCESS = %s \n", category) != 1)
 	{
-		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
+		errorm("Impossible d'extraire la requête");
 		error_msg(client, "0x999");
 		return FAIL;
 	}
 	clean_b(buffer);
 	
-	fseek(server->object_file, 0, SEEK_SET);				 // RESET FILE
+	rewind(server->object_file);				 // RESET FILE
 	
-	while(fgets(ligne, sizeof(ligne), server->object_file)) // GET EACH LINE
+	while(fgets(ligne, sizeof(ligne), server->object_file) != NULL) // GET EACH LINE
 	{	
 		decode_item(client, &temp_item, ligne);			  // DECODE LINE
 		
-		if(strcmp(temp_item.category, category) == 0)
+		if(strcmp(temp_item.category, category) == 0 && temp_item.expire_time > server_time)
 		{
-		
-			sprintf(buffer, "ITEM = %ld %s %s %f %f %f %d \n" , 
+			clean_b(buffer);
+			sprintf(buffer, "ITEM = %ld + %s + %s + %f + %f + %d \n" , 
 			temp_item.uid,
 			temp_item.name,
 			temp_item.category,
 			temp_item.start_price,
 			temp_item.temp_price,
-			temp_item.final_price,
 			temp_item.quantity);						 	 // FORMAT
+			
+			usleep(10000);
 		
 			send_socket(client, buffer);					 // SEND			
 			clean_b(buffer);								 // CLEAN BUFFER
@@ -940,10 +951,14 @@ state req_cat_access(struct user_t * client, struct server_t * server, char * bu
 		}
 	}
 	
+	usleep(10000);
+	clean_b(buffer);
 	sprintf(buffer, "END_ITEM \n");
 	send_socket(client, buffer);					 		 // SEND
 	clean_b(buffer);								 	 	 // CLEAN BUFFER
 	fseek(server->object_file, 0, SEEK_SET);				 // RESET FILE
+	
+	info("La requête a bien aboutit");
 	return SUCCESS;
  }
  
@@ -955,32 +970,32 @@ state req_item(struct user_t * client, struct server_t * server, char * buffer)
 	struct object_t temp_item;
 	
 	
+	
 	if(sscanf(buffer,"REQ_ITEM = %ld \n", &item_uid) != 1)
 	{
-		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
+		errorm("Impossible d'extraire la requête");
 		error_msg(client, "0x999");
 		return FAIL;
 	}
 	clean_b(buffer);
-	fseek(server->object_file, 0, SEEK_SET);
+	rewind(server->object_file);
 	
 	while(fgets(ligne, sizeof(ligne), server->object_file)) // GET EACH LINE
 	{
 		decode_item(client, &temp_item, ligne);			  // DECODE LINE
 
-		if(temp_item.uid == item_uid)
+		if(temp_item.uid == item_uid && temp_item.expire_time > server_time)
 		{
-			sprintf(buffer, "ITEM = %s + %s + %s + %s + %f + %d + %s \n" , 
-			temp_item.name,
-			temp_item.category,
+			sprintf(buffer, "ITEM = %ld + %s + %s + %s + %ld \n",
+			temp_item.uid,
 			temp_item.description,
 			temp_item.url_image,
-			temp_item.start_price,
-			temp_item.quantity,
-			temp_item.place);						 	 	  // FORMAT
+			temp_item.place,
+			temp_item.expire_time);				 	 	  // FORMAT
 		
 			send_socket(client, buffer);					  // SEND			
 			clean_b(buffer);
+			info("La requête a bien aboutit");
 			return SUCCESS;
 			
 		}
@@ -1010,7 +1025,7 @@ state req_bid_price(struct user_t * client, struct server_t * server, char * buf
 	}
 	clean_b(buffer);
 	
-	fseek(server->object_file, 0, SEEK_SET);
+	rewind(server->object_file);
 	while(fgets(ligne, sizeof(ligne), server->object_file)) // GET EACH LINE
 	{
 		decode_item(client, &temp_item, ligne);			  // DECODE LINE
@@ -1025,20 +1040,11 @@ state req_bid_price(struct user_t * client, struct server_t * server, char * buf
 			else
 			{
 				temp_item.temp_price = item_new_price;
+				temp_item.acheteur = client->uid;
 				
 				encode_item(client, &temp_item, ligne);
-				if(fseek(server->object_file, - strlen(ligne), SEEK_CUR) != 0)
-				{
-					fprintf(stderr,"[ERROR]: Impossible de déplacer le curseur dans object_file: %s\n", strerror(errno));
-					error_msg(client, "0x999");
-					return FAIL;
-				}
-				if(fputs(ligne, server->object_file) == EOF)
-				{
-					fprintf(stderr,"[ERROR]: Impossible d'écrire la ligne dans object_file: %s\n", strerror(errno));
-					error_msg(client, "0x999");
-					return FAIL;
-				}
+				fseek(server->object_file, - strlen(ligne), SEEK_CUR);
+				fputs(ligne, server->object_file);
 				break;
 			}		
 		}
@@ -1048,6 +1054,6 @@ state req_bid_price(struct user_t * client, struct server_t * server, char * buf
 		}
 	}
 	
-	fseek(server->object_file, 0, SEEK_SET);	
+	rewind(server->object_file);
 	return SUCCESS;
  }

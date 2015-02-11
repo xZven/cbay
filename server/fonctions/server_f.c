@@ -297,7 +297,7 @@ bool decode_item(struct user_t * client, struct object_t * item, char * ligne)
 {
 	int n;
 	
-	n = sscanf(ligne, " %ld + %51[A-Za-z0123456789 ] + %51[A-Za-z ] + %1024[A-Za-z0123456789. ] + %99[A-Za-z0123456789:// ]+ %f + %f + %f + %d + %99[A-Za-z0123456789,. ] + %ld + %ld \n", 
+	n = sscanf(ligne, " %ld + %51[^+] + %51[^+] + %1024[^+] + %99[^+]+ %f + %f + %f + %d + %99[^+] + %ld + %ld + %ld \n", 
 	&item->uid, 
 	item->name, 
 	item->category, 
@@ -309,9 +309,10 @@ bool decode_item(struct user_t * client, struct object_t * item, char * ligne)
 	&item->quantity,			
 	item->place,       
 	&item->vendeur,
-	&item->acheteur);
+	&item->acheteur,
+	&item->expire_time);
 	
-	if(n == 12)  // OK
+	if(n == 13)  // OK
 		return TRUE;
 	else		// !OK
 		return FALSE; 
@@ -321,7 +322,7 @@ bool encode_item(struct user_t * client, struct object_t * item, char * ligne)
 {
 	int n;
 	
-	n = sprintf(ligne, " %ld + %s + %s + %s + %s + %f + %f + %f + %d + %s + %ld + %ld \n", 
+	n = sprintf(ligne, "%ld + %s + %s + %s + %s + %f + %f + %f + %d + %s + %ld + %ld + %ld \n", 
 	item->uid, 
 	item->name, 
 	item->category, 
@@ -333,9 +334,10 @@ bool encode_item(struct user_t * client, struct object_t * item, char * ligne)
 	item->quantity,			
 	item->place,       
 	item->vendeur,
-	item->acheteur);
+	item->acheteur,
+	item->expire_time);
 	
-	if(n == 12)  // OK
+	if(n == 13)  // OK
 		return TRUE;
 	else		// !OK
 		return FALSE; 
@@ -376,4 +378,59 @@ bool encode_log(struct log_t * event, struct server_t * server)
 	
 	return TRUE;
 	
+}
+
+// cette fonction vérifie la validité des enchère.
+/*
+	Si l'enchère a expiré, la fonction marque le prix final comme égal au dernier enchère sur l'objet
+	ou s'il n'y a pas eu d'enchère marque le vendeur comme acheteur.
+*/
+void expire_time(struct user_t * client, struct server_t * server)
+{
+	struct object_t item;
+	char ligne[2048];
+	char cmd[100];
+	
+	FILE * temp_file;
+	
+	
+	temp_file = tmpfile();
+	if(temp_file == NULL)
+	{
+		errorm("Erreur création fichier temporaire");
+		exit(FAIL);
+	}
+
+	rewind(server->auth_file);
+	rewind(temp_file);			 // RESET FILES
+	
+	while(fgets(ligne, sizeof(ligne), server->object_file) != NULL) // GET EACH LINE
+	{	
+		decode_item(client, &item, ligne);			  // DECODE LINE
+		time(&server_time);		
+		if(item.expire_time <= server_time) // si l'enchère est expiré
+		{
+			if(item.acheteur == 0 )
+				item.acheteur = item.vendeur;
+			
+			item.final_price = item.temp_price;
+			encode_item(client, &item, ligne);
+			fputs(ligne, temp_file);
+		}
+		else
+			fputs(ligne, temp_file);
+	}
+
+	rewind(temp_file);			 				 // RESET FILES
+	rewind(server->object_file);				 // RESET FILE
+	
+		sprintf(cmd, "echo -n "" > %s", object_file);
+		system(cmd);
+	while(fgets(ligne, sizeof(ligne), temp_file) != NULL) // GET EACH LINE
+	{
+			fputs(ligne, server->object_file);
+	}
+	
+	rewind(temp_file);			 				 // RESET FILES
+	rewind(server->object_file);				 // RESET FILE
 }

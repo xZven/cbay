@@ -18,14 +18,15 @@ struct object_t
 {
 	unique_id_t uid;		// IDENTIFIANT UNIQUE DE L ITEM
 	char name[51];			// NOM DE L'OBJET (à l'unité) exemple: pour un lot de XXX: "XXX"
-	char category[51];		// CATEGORIE (mobilier, électro, auto, vêtement, livre, )
+	char category[51];		// CATEGORIE (mobilier, électro, auto, vêtement, livre, ...)
 	char description[1024];	// DESCRIPTION DE L'OBJET OU DU LOT MIS AUX ENCHERES
 	char url_image[100];	// URL IMAGE
 	float start_price; 		// PRIX DE DEPART DE L'ENCHERE
 	float temp_price;  		// PRIX INTERMEDIAIRES (prix proposé durant l'enchère par les utilisateurs, le prix affiché est celui le plus élevé)
 	float final_price; 		// PRIX FINAL DE L'ENCHERE
 	int quantity;			// QUANTITE (le prix de l'enchère est pour tout le lot)
-	char place[100];         // ADRESSE DE L'OBJETS
+	char place[100];        // ADRESSE DE L'OBJETS
+	time_t expire_time;		// TEMPS avant expiration de l'enchère
 	unique_id_t vendeur;	// UID DU VENDEUR
 	unique_id_t acheteur;	// UID DE L'ACHETEUR (initialisé à 0 / mis à 0 lors de la suppresion d'un utilisateur lros d'un enchère)
 };

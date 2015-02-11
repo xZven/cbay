@@ -41,6 +41,7 @@
 
 // VARIABLES GLOBAL
 int debug; 						// Utilisé pour le mode debug
+time_t server_time;
 char auth_file[50];
 char object_file[50];
 
