@@ -111,6 +111,7 @@ int main(int argc, char * argv[])
 		case 1: // Connexion au serveur
 			debugm("Connexion au serveur");
 			req_connect(&client, buffer);
+			
 			break;
 			
 		case 2: //Inscription puis connexion direct
@@ -121,6 +122,7 @@ int main(int argc, char * argv[])
 				exit(FAIL);
 			}
 			req_connect(&client, buffer);
+			
 			break;
 		default:
 			debugm("Choix de connexion par défaut");

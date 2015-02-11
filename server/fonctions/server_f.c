@@ -212,6 +212,7 @@ int rcv_socket(struct user_t * client, char * buffer)
 
 	do
 	{
+		time(&server_time);
 		usleep(10000);
 		size_recv = recv(client->socket_fd, buffer, 1024, MSG_DONTWAIT);
 		

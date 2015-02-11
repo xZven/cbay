@@ -80,10 +80,9 @@ int main (int argc, char * argv[])
 	
 		while(client.socket_fd >= 0) // TANT QUE LE CLIENT EST CONNECTE
 		{
-			expire_time(&client, &server);
+			//expire_time(&client, &server);
 			clean_b(buffer);	
 			rcv_socket(&client, buffer);
-			time(&server_time);
 			if(0)
 			{
 			}

@@ -276,14 +276,18 @@ while(1)
 			do // choix de la catégorie
 				{
 					__fpurge(stdin);
-					printf("Numéro de catégorie [1 - %d]: ", index + 1);
-				}while((scanf("%d", &choix_cat) != 1) || (choix_cat > index + 1) || (choix_cat <= 0));
+					printf("Numéro de catégorie [1 - %d] (0 to leave): ", index + 1);
+				}while((scanf("%d", &choix_cat) != 1) || (choix_cat > index + 1) || (choix_cat < 0));
+				
+			if(choix_cat == 0)
+				break; // on quitte la fonctionnalitée
 			
 			clean_b(buffer);
 			sprintf(buffer, "REQ_CAT_ACCESS = %s \n", category[choix_cat - 1]);
 			debugm(buffer);
 			send_socket(client, buffer); clean_b(buffer);
 			
+			index = 0;
 			do // affichage des item de la catégorie
 				{
 					rcv_socket(client, buffer); // réception
@@ -324,14 +328,17 @@ while(1)
 						index++;
 					}
 				}while(index <= 100);
-				
+
 			do // choix de l'item
-				{
-					__fpurge(stdin);
-					greenm("Choisissez l'Objet dont vous souhaitez avoir plus d'information.");
-					printf("Numéro d'item [1 - %d]: ", index + 1);
-				}while((scanf("%d", &choix_item) != 1) || (choix_item > index + 1) || (choix_item <= 0));
-				
+			{
+				__fpurge(stdin);
+				greenm("Choisissez l'Objet dont vous souhaitez avoir plus d'information.");
+				printf("Numéro d'item [1 - %d] (0 to leave): ", index + 1);
+			}while((scanf("%d", &choix_item) != 1) || (choix_item > index + 1) || (choix_item < 0));
+			
+			if(choix_item == 0)
+				break; // on quitte la fonctionnalitée
+		
 			clean_b(buffer);
 			sprintf(buffer, "REQ_ITEM = %ld \n", new_bid[choix_cat - 1].uid);
 			debugm(buffer);
@@ -344,7 +351,7 @@ while(1)
 							new_bid[index].description,
 							new_bid[index].url_image,
 							new_bid[index].place,
-							&new_bid[index].expire_time) !=6 )
+							&new_bid[index].expire_time) != 5 )
 			{
 				warm("Erreur lors de la réception de l'item");
 				printf(buffer);
@@ -381,9 +388,9 @@ while(1)
 			}while((scanf(" %c", &choix_bid) != 1) || choix_bid != 'o' || choix_bid != 'n');
 			if(choix_bid == 'n')
 			{
-				break;
+				break; // on quitte la fonctionnalitée
 			}
-			else 
+			else // si c'est confirmé
 			{
 				do // montant de l'enchère
 				{
@@ -410,9 +417,7 @@ while(1)
 				printf(buffer); 
 			}
 			break;
-		}
-	
-	
+		}	
 	}
 }	
 	return SUCCESS;

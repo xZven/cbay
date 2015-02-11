@@ -25,6 +25,7 @@ state req_connect(struct user_t * client, char * buffer)
 		{	
 			sscanf(buffer, "USER_CONNECTED = %ld \n", &client->uid);
 			clean_b(buffer);
+			system("clear");
 			printf("%sConnecté en tant que:%s %s\n", GREEN, NORM, client->login);
 			debugm ("connecion réussi");
 			return SUCCESS;

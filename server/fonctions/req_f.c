@@ -917,6 +917,7 @@ state req_cat_access(struct user_t * client, struct server_t * server, char * bu
 	
 	if(sscanf(buffer,"REQ_CAT_ACCESS = %s \n", category) != 1)
 	{
+		
 		errorm("Impossible d'extraire la requête");
 		error_msg(client, "0x999");
 		return FAIL;
@@ -925,13 +926,17 @@ state req_cat_access(struct user_t * client, struct server_t * server, char * bu
 	
 	rewind(server->object_file);				 // RESET FILE
 	
+	debugm(category);
+	debugm("début de la recher...");
 	while(fgets(ligne, sizeof(ligne), server->object_file) != NULL) // GET EACH LINE
 	{	
+		debugm(ligne);
 		decode_item(client, &temp_item, ligne);			  // DECODE LINE
+		debugm(temp_item.category);
 		
-		if(strcmp(temp_item.category, category) == 0 && temp_item.expire_time > server_time)
+		if(strcmp(temp_item.category, category) >= 0 && temp_item.expire_time > server_time) // si c'est dans la bonne catégorie et si ce n'est pas expiré
 		{
-			clean_b(buffer);
+			clean_b(buffer);								 // CLEAN BUFFER
 			sprintf(buffer, "ITEM = %ld + %s + %s + %f + %f + %d \n" , 
 			temp_item.uid,
 			temp_item.name,
@@ -942,27 +947,26 @@ state req_cat_access(struct user_t * client, struct server_t * server, char * bu
 			
 			usleep(10000);
 		
-			send_socket(client, buffer);					 // SEND			
-			clean_b(buffer);								 // CLEAN BUFFER
+			send_socket(client, buffer);					 // SEND
 		}
-		else
+		else // sinon on ignore la ligne et on continue
 		{
 			// IGNRORE
 		}
 	}
 	
 	usleep(10000);
-	clean_b(buffer);
-	sprintf(buffer, "END_ITEM \n");
+	clean_b(buffer); 										 // CLEAN BUFFER
+	sprintf(buffer, "END_ITEM \n");							 // FORMAT
 	send_socket(client, buffer);					 		 // SEND
-	clean_b(buffer);								 	 	 // CLEAN BUFFER
-	fseek(server->object_file, 0, SEEK_SET);				 // RESET FILE
+	
+	rewind(server->object_file);
 	
 	info("La requête a bien aboutit");
 	return SUCCESS;
  }
  
- 
+ //
 state req_item(struct user_t * client, struct server_t * server, char * buffer)
  {
 	unique_id_t item_uid = 0;
@@ -984,7 +988,7 @@ state req_item(struct user_t * client, struct server_t * server, char * buffer)
 	{
 		decode_item(client, &temp_item, ligne);			  // DECODE LINE
 
-		if(temp_item.uid == item_uid && temp_item.expire_time > server_time)
+		if(temp_item.uid == item_uid)
 		{
 			sprintf(buffer, "ITEM = %ld + %s + %s + %s + %ld \n",
 			temp_item.uid,
@@ -1019,7 +1023,7 @@ state req_bid_price(struct user_t * client, struct server_t * server, char * buf
 	
 	if(sscanf(buffer,"REQ_BID_PRICE = %f FOR %ld\n", &item_new_price, &item_uid) != 1)
 	{
-		fprintf(stderr,"[ERROR]: Impossible d'extraire la requête: %s\n", strerror(errno));
+		errorm("Impossible d'extraire la requête");
 		error_msg(client, "0x999");
 		return FAIL;
 	}
