@@ -1,6 +1,19 @@
 /* Projet Cbay BALBIANI Lorrain - Manavai TEIKITUHAAHAA */
 
-//
+/*
+ * Ces fonctions porte le même nom que les requêtes de la RFC 
+ * du projet Cbay.
+ * Ces fonctions reçoivent en paramètre:
+ * struct user_t: structure regroupant les informations du client
+ * connecté ou qui envoi la requête.
+ * struct server_t: structure regroupant les paramètres du serveur
+ * pour faciliter le passage de plusieurs paramètres
+ *
+ * Etant donnée que ces fonctions gère les erreurs, les états des fonctions
+ * renvoyés ne sont pas traités par le programme principale
+ */
+
+// fonction de vérification de la disponibilité d'un login
 state req_verify_login(struct user_t * client, struct server_t * server, char * buffer)
 {
 	char ligne[512];
@@ -15,13 +28,13 @@ state req_verify_login(struct user_t * client, struct server_t * server, char * 
 	}
 	clean_b(buffer);
 	
-	fseek(server->auth_file, 0, SEEK_SET); // reset file
+	rewind(server->auth_file); // reset file
 	
 	while(fgets(ligne, sizeof(ligne), server->auth_file) != NULL)
 	{
 		debugm(ligne);
-		if(decode_user(&temp_client, ligne) == TRUE)
-		{
+		decode_user(&temp_client, ligne);
+
 			if(strcmp(client->login,temp_client.login) == 0)
 			{
 				info("Le login demandé par l'utilisateur n'est pas libre");
@@ -32,17 +45,10 @@ state req_verify_login(struct user_t * client, struct server_t * server, char * 
 				fseek(server->auth_file, 0, SEEK_SET); // reset file
 				return LOGIN_BUSY;
 			}
-		}
-		else
-		{
-			errorm("Erreur lors du décodage de la ligne");
-			error_msg(client, "0x999");
-			fseek(server->auth_file, 0, SEEK_SET); // reset file
-			return FAIL;
-		}
+		
 	}
 	
-	fseek(server->auth_file, 0, SEEK_SET); // reset file
+	rewind(server->auth_file); // reset file
 	info("Le login demandé par l'utilisateur est libre");
 	clean_b(buffer);
 	sprintf(buffer, "LOGIN_FREE = %s \n", client->login);
@@ -52,7 +58,7 @@ state req_verify_login(struct user_t * client, struct server_t * server, char * 
 	return LOGIN_FREE; // OK
 }
 
-//
+// fonction d'ajout d'un nouvel utilisateur
 state req_new_user(struct user_t * client,  struct server_t * server, char * buffer)
 {
 	char ligne[1024];	
@@ -89,7 +95,7 @@ state req_new_user(struct user_t * client,  struct server_t * server, char * buf
 	return SUCCESS;
 }
 
-//
+// fonction pour la connexion d'un utilisateur
 state req_connect(struct user_t * client,  struct server_t * server, char * buffer)
 {
 	char cmd[100];
@@ -195,7 +201,7 @@ state req_connect(struct user_t * client,  struct server_t * server, char * buff
 	
 }
 
-//
+// fonction pour le choix du mode
 state req_mode(struct user_t * client, struct server_t * server, char * buffer)
 {
 	
@@ -264,7 +270,7 @@ state req_mode(struct user_t * client, struct server_t * server, char * buffer)
 	}
 }
 
-//
+// fonction de changement de mot de passe
 state req_new_pw(struct user_t * client, struct server_t * server, char * buffer)
 {
 	
@@ -390,7 +396,7 @@ state req_new_pw(struct user_t * client, struct server_t * server, char * buffer
 	return FAIL;
 }
 
-//
+// fonction de suppresion d'un utilisateur
 state req_del_user(struct user_t * client, struct server_t * server, char * buffer)
 {
 	unique_id_t client_uid;
@@ -466,7 +472,7 @@ state req_del_user(struct user_t * client, struct server_t * server, char * buff
 	return SUCCESS;
 }
 
-//
+// fonction de requête des item en cours d'enchère
 state req_all_item(struct user_t * client, struct server_t * server, char * buffer)
 {
 	
@@ -519,7 +525,7 @@ state req_all_item(struct user_t * client, struct server_t * server, char * buff
 	return SUCCESS;
 }
 
-/**/
+// fonction pour appliquer une opération sur un item choisit
 state req_op(struct user_t * client, struct server_t * server, char * buffer)
 { // LOG A FAIRE
 	char op[10];
@@ -610,7 +616,7 @@ state req_op(struct user_t * client, struct server_t * server, char * buffer)
 	
 }
 
-//
+// fonction d'envoi des item vendu par un vendeur
 state req_item_sold(struct user_t * client, struct server_t * server, char * buffer)
 {
 	struct object_t temp_item;
@@ -672,7 +678,7 @@ state req_item_sold(struct user_t * client, struct server_t * server, char * buf
 	
 }
 
-//
+// fonction d'envoi des item en cours d'enchères
 state req_item_user(struct user_t * client, struct server_t * server, char * buffer)
 {
 	
@@ -738,7 +744,7 @@ state req_item_user(struct user_t * client, struct server_t * server, char * buf
 	return FAIL;
 }
 
-//
+// fonction d'ajout d'un nouvel item aux enchères
 state put_new_item(struct user_t * client, struct server_t * server, char * buffer)
 {
 
@@ -786,7 +792,7 @@ state put_new_item(struct user_t * client, struct server_t * server, char * buff
 	return SUCCESS;
 }
 
-
+// fonction d'envoi des item achetés
 state req_hist_item_bought(struct user_t * client, struct server_t * server, char * buffer)
 {
 	struct object_t temp_item;
@@ -846,7 +852,7 @@ state req_bid_user(struct user_t * client, struct server_t * server, char * buff
 	return SUCCESS;
 }
 
-//
+// fonction d'envoi des catégorie sur le serveur
 state req_cat(struct user_t * client, struct server_t * server, char * buffer)
 {
 	int tabex = 0;
@@ -905,7 +911,7 @@ state req_cat(struct user_t * client, struct server_t * server, char * buffer)
 	return SUCCESS;
 }
 
-//
+// fonction d'envoi des items d'une catégories
 state req_cat_access(struct user_t * client, struct server_t * server, char * buffer)
  {
  
@@ -966,7 +972,7 @@ state req_cat_access(struct user_t * client, struct server_t * server, char * bu
 	return SUCCESS;
  }
  
- //
+ // fonction d'envoi des détails d'un item
 state req_item(struct user_t * client, struct server_t * server, char * buffer)
  {
 	unique_id_t item_uid = 0;
@@ -1010,7 +1016,7 @@ state req_item(struct user_t * client, struct server_t * server, char * buffer)
 	return FAIL;
  }
  
- 
+// fonction de demande d'enchère sur un item 
 state req_bid_price(struct user_t * client, struct server_t * server, char * buffer)
  {
 	float item_new_price = 0;
@@ -1020,8 +1026,8 @@ state req_bid_price(struct user_t * client, struct server_t * server, char * buf
 	struct object_t temp_item;
 
 	
-	
-	if(sscanf(buffer,"REQ_BID_PRICE = %f FOR %ld\n", &item_new_price, &item_uid) != 1)
+	info("Requête d'enchère");
+	if(sscanf(buffer,"REQ_BID_PRICE = %f FOR %ld \n", &item_new_price, &item_uid) != 2)
 	{
 		errorm("Impossible d'extraire la requête");
 		error_msg(client, "0x999");
@@ -1029,9 +1035,11 @@ state req_bid_price(struct user_t * client, struct server_t * server, char * buf
 	}
 	clean_b(buffer);
 	
+	debugm("Début de la rechercher...");
 	rewind(server->object_file);
 	while(fgets(ligne, sizeof(ligne), server->object_file)) // GET EACH LINE
 	{
+		debugm(ligne);
 		decode_item(client, &temp_item, ligne);			  // DECODE LINE
 		
 		if(temp_item.uid == item_uid)
@@ -1058,6 +1066,8 @@ state req_bid_price(struct user_t * client, struct server_t * server, char * buf
 		}
 	}
 	
+	clean_b(buffer);
+	send_socket(client, "BID_OK \n");
 	rewind(server->object_file);
 	return SUCCESS;
  }

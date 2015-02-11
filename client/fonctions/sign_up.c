@@ -1,12 +1,15 @@
+/* Projet Cbay BALBIANI Lorrain - Manavai TEIKITUHAAHAA */
 /*
  * Cette fonction permet de choisir entre se connecter directement au serveur,
  * ou de s'inscrire avant de se connecter.
+ * il reçoit en paramètre une structure de type user_t et un
+ * pointeur sur un buffer qui sera utilisé pour former les requêtes.
  */
 state req_sign_up(struct user_t * client, char * buffer)
 { 
-	char buff[50];
+	char buff[50]; // permet de recevoir les réponse du serveur
 	int tentative = 0;
-	do
+	do // tant que le login est libre (4 tentatives)
 	{
 		do // LOGIN
 		{
@@ -27,11 +30,7 @@ state req_sign_up(struct user_t * client, char * buffer)
 		sprintf(buffer, "REQ_VERIFY_LOGIN = %s \n", client->login);
 		send_socket(client, buffer);
 		
-		if(rcv_socket(client, buff) == -1) // réponse du serveur
-		{
-			errorm("Erreur lors de la réception");
-			return FAIL;
-		}
+		rcv_socket(client, buff); // réponse du serveur
 		
 		debugm(buff); debugm("Réception");
 	}while(strncmp(buff, "LOGIN_FREE", 10) != 0);	//Sort de la boucle si la réponse est LOGIN_FREE
@@ -44,20 +43,17 @@ state req_sign_up(struct user_t * client, char * buffer)
 	sprintf(buffer, "REQ_NEW_USER = %s + %s \n", client->login, client->password);
 	send_socket(client, buffer); clean_b(buffer);
 	
-	if(rcv_socket(client, buffer) == -1)
-		{
-			errorm("Erreur lors de la réception");
-			return FAIL;
-		}
+	rcv_socket(client, buffer); // réponse du serveur
 	
-	if(strcmp(buffer, "USER_ADDED \n") == 0)
+	if(strcmp(buffer, "USER_ADDED \n") == 0) // si l'utilisateur a bien été ajouté
 	{
 		greenm("Votre compte a bien été créé !");
 		return SUCCESS;
 	}
 	else
 	{
-		printf("%s\n", buffer);
+		echecm("L'utilisateur n'a pas pû être ajouté");
+		printf(buffer);
 		return FAIL;
 	}
 }

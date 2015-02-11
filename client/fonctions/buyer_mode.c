@@ -1,3 +1,5 @@
+/* Projet Cbay BALBIANI Lorrain - Manavai TEIKITUHAAHAA */
+
 state buyer_mode(struct user_t * client, char * buffer)
 {
 	int choix = -1;
@@ -5,7 +7,6 @@ state buyer_mode(struct user_t * client, char * buffer)
 	int choix_item = 0;
 	int choix_op = 0;
 	int choix_cat = 0;
-	char choix_bid = 'o';
 	float enchere = 0;
 	
 	float prix = 0;
@@ -347,11 +348,11 @@ while(1)
 			rcv_socket(client, buffer); // réception
 			
 			if(sscanf(buffer, "ITEM = %ld + %1024[^+] + %99[^+] + %99[^+] + %ld \n",
-							&new_bid[index].uid,
-							new_bid[index].description,
-							new_bid[index].url_image,
-							new_bid[index].place,
-							&new_bid[index].expire_time) != 5 )
+							&new_bid[index-1].uid,
+							new_bid[index-1].description,
+							new_bid[index-1].url_image,
+							new_bid[index-1].place,
+							&new_bid[index-1].expire_time) != 5 )
 			{
 				warm("Erreur lors de la réception de l'item");
 				printf(buffer);
@@ -368,40 +369,29 @@ while(1)
 			{
 				time(&time_exp);
 				 printf("\tUID:%ld\n\tNom: %s\n\tCatégorie: %s\n\tDescription: %s\n\tURL IMAGE: %s\n\tPrix de départ: %f Euro\n\tDernier enchère: %f Euro\n\tQuantité: %d\n \tAdresse du vendeur: %s\n\tTemps avant expiration de l'enchère [en min]: %ld \n",
-							new_bid[index].uid,
-							new_bid[index].name,
-							new_bid[index].category,
-							new_bid[index].description,
-							new_bid[index].url_image,
-							new_bid[index].start_price,
-							new_bid[index].temp_price,
-							new_bid[index].quantity,
-							new_bid[index].place,
-							(new_bid[index].expire_time - time_exp)*60);
+							new_bid[index-1].uid,
+							new_bid[index-1].name,
+							new_bid[index-1].category,
+							new_bid[index-1].description,
+							new_bid[index-1].url_image,
+							new_bid[index-1].start_price,
+							new_bid[index-1].temp_price,
+							new_bid[index-1].quantity,
+							new_bid[index-1].place,
+							(new_bid[index-1].expire_time - time_exp)/60);
 			}
 			
-			do // demande de confirmation d'enchère
+
+			do // montant de l'enchère
 			{
 				__fpurge(stdin);
-				printf("Voulez-vous enchérir sur cette objet ?\n");
-				printf("choix [o/n]: ");
-			}while((scanf(" %c", &choix_bid) != 1) || choix_bid != 'o' || choix_bid != 'n');
-			if(choix_bid == 'n')
-			{
-				break; // on quitte la fonctionnalitée
-			}
-			else // si c'est confirmé
-			{
-				do // montant de l'enchère
-				{
-					__fpurge(stdin);
-					greenm("\nVotre montant doit être supérieur à l'enchère en cours ou au prix initial (s'il n'y pas d'enchère en cours)");
-					printf("Montant [en Euro]: ");
-				}while((scanf(" %f", &enchere) != 1) || enchere < new_bid[index].start_price || enchere < new_bid[index].temp_price); // enchère inférieur au prix initial ou à l'enchère en cours
-			}
+				greenm("\nVotre montant doit être supérieur à l'enchère en cours ou au prix initial (s'il n'y pas d'enchère en cours)");
+				printf("Montant [en Euro]: ");
+			}while((scanf("%f", &enchere) != 1) || enchere < new_bid[index-1].start_price || enchere < new_bid[index-1].temp_price); // enchère inférieur au prix initial ou à l'enchère en cours
+
 			
 			clean_b(buffer);
-			sprintf(buffer, "REQ_BID_PRICE = %f FOR %ld \n", enchere, new_bid[index].uid);
+			sprintf(buffer, "REQ_BID_PRICE = %f FOR %ld \n", enchere, new_bid[index-1].uid);
 			debugm(buffer);
 			send_socket(client, buffer); clean_b(buffer);
 			/**/

@@ -1,11 +1,13 @@
 state admin_mode(struct user_t * client, char * buffer)
 {
-	int choix = 0;
-	int choix_op = -1;
-	int choix_item = 0;
-	int index = 0;
-	struct user_t temp_user;
+	int choix = 0;				// choix pour la fonctionnalité du mode
+	int choix_op = -1;			// choix pour une opération sur un objet au enchère
+	int choix_item = 0;			// choix de l'item dont une opération va être appliqué
+	int index = 0;				// variable pour parcourir les tableaux
+	
 	char  temp_password1[20], temp_password2[20];
+	
+	struct user_t temp_user;			
 	struct object_t item[NMAX_ITEM];
 	
 while(1)
@@ -20,12 +22,12 @@ while(1)
 		__fpurge(stdin);
 	}while(((scanf("%d", &choix)) != 1) || (choix > 2));
 	
-	switch(choix)
+	switch(choix) // choix du mode
 	{
 		case 0:
 			exit(0);
 			break;
-		case 1:
+		case 1: // gestion des utilisateurs
 		{
 			printf("\n\nGestion des utilisateurs\n");
 			do
@@ -41,12 +43,12 @@ while(1)
 			
 			switch(choix)
 			{
-				case 0: // QUIT
+				case 0: // on ferme le programme
 					exit(0);
 					break;					
-				case 1: // CHANGE PW
+				case 1: // changer le mot de passe d'utilisateur
 				{
-					do
+					do // login + nouveua mot de passe
 					{
 						__fpurge(stdin);
 						printf("\n");
@@ -66,47 +68,39 @@ while(1)
 					printf("Envoi de la requête au serveur...\n");
 					
 					clean_b(buffer);
-					sprintf(buffer, "REQ_NEW_PW = %s ON %s BY %ld \n", temp_user.password, temp_user.login, client->uid);					
+					sprintf(buffer, "REQ_NEW_PW = %s ON %s BY %ld \n", temp_user.password, temp_user.login, client->uid); //formatage de la requête			 		
 					send_socket(client, buffer); // Envoi de la requête
 					
-					if(rcv_socket(client, buffer) == -1)
-					{
-						errorm("Erreur lors de la réception");
-						return FAIL;
-					}
+					rcv_socket(client, buffer); // réception de la réponse du serveur
 					
-					if(strncmp(buffer, "PASSWORD_CHANGED \n", 16) ==0) // PASSWORD CHANGED SUCCESSFULL
+					if(strncmp(buffer, "PASSWORD_CHANGED \n", 16) ==0) // le mot de passe a bien été changé
 					{
-						printf("Le mot de passe de l'utilisateur a été changé avec succès ! \n");
+						greenm("Le mot de passe de l'utilisateur a été changé avec succès ! \n");
 					}
-					else
+					else // pas de modification de mot de passe
 					{
-						printf("Le mot de passe n'a pas pu être changé\n");
-						printf("%s\n", buffer);
+						echecm("Le mot de passe n'a pas pu être changé\n");
+						printf( buffer);
 					}
 					printf("\n\nRetour...\n\n");
 					break;
 				}
 				case 2: // DELETE USER
 				{
-					do
-					{
-						__fpurge(stdin);
-						printf("\n");
-						printf("Nom de l'utilisateur que vous voulez supprimer: ");
-							if(scanf("%s", temp_user.login) == 1)
-							{
-								break;
-							}						
-					}while(1);
 					
-					printf("Envoi de la requête au serveur...\n");
+					__fpurge(stdin);
+					printf("\n");
+					printf("Nom de l'utilisateur que vous voulez supprimer: ");
+					scanf("%s", temp_user.login);
+					
+					
+					printf("\nEnvoi de la requête au serveur...\n");
 					
 					clean_b(buffer);
-					sprintf(buffer, "REQ_DEL_USER = %s BY %ld \n", temp_user.login, client->uid);					
+					sprintf(buffer, "REQ_DEL_USER = %s BY %ld \n", temp_user.login, client->uid); //formatage de la requête
 					send_socket(client, buffer); 			// Envoi de la requête
 					
-					rcv_socket(client, buffer); // attente de la réponse
+					rcv_socket(client, buffer); // réception de la réponse du serveur
 	
 					
 					if(strncmp(buffer, "USER_DELETED", 12) ==0) // PASSWORD CHANGED SUCCESSFULL
@@ -128,16 +122,16 @@ while(1)
 			}
 			break;
 		}
-		case 2:
+		case 2: // gstion des ventes
 		{
 			printf("\n\nGestion des Enchères\n");
 			
 			clean_b(buffer);
-			sprintf(buffer, "REQ_ALL_ITEM BY %ld \n", client->uid);					
+			sprintf(buffer, "REQ_ALL_ITEM BY %ld \n", client->uid);		//formatage de la requête			
 			send_socket(client, buffer); // Envoi de la requête
 			index = 0;
 			printf("Contact du serveur pour affichage des items...\n\n");
-				do // affichage des item
+				do // affichage des item tant qu'on a pas reçu "END_ITEM"
 				{
 						rcv_socket(client, buffer); // réception
 						if(strcmp("END_ITEM \n", buffer) == 0) // si c'est la fin de l'affichage
@@ -146,16 +140,16 @@ while(1)
 							index--;
 							break;
 						}
-						else if(strncmp("ERROR", buffer, 5) == 0) // si erreur 
+						else if(strncmp("ERROR", buffer, 5) == 0) // si on reçois un erreur
 						{
 							echecm("Erreur reçu du serveur");
 							printf(buffer);
 							break;
 						}
-						else
+						else //sinon tout se passe bien
 						{
 			/*************************************************/			
-							if(sscanf(buffer, "ITEM = %ld + %51[A-Za-z0123456789 ] + %51[A-Za-z ] + %f + %f + %d \n",
+							if(sscanf(buffer, "ITEM = %ld + %51[^+] + %51[^+] + %f + %f + %d \n",
 								&item[index].uid,
 								item[index].name,
 								item[index].category,
@@ -180,7 +174,7 @@ while(1)
 						debugm("boucle");
 					}while(1);
 					
-				do // choix de l'item
+				do // choix de l'item dont on veut agir
 				{
 					__fpurge(stdin);
 					printf("Numéro d'item [1 - %d]: ", index + 1);
@@ -203,28 +197,28 @@ while(1)
 				}while((scanf("%d", &choix_op) != 1) || (choix_op > 2) || (choix_op < 0));
 				
 				debugm("Opération sur ITEM");
-				switch(choix_op) // Opération sur l'item
+				switch(choix_op) // selo l'opération sur l'item
 				{
-					case 0:
+					case 0: // on retour au menu du mode
 						break;
 					case 1: // suppresion de l'enchère
 					{
 						debugm("Suppresion de l'enchère");
 						clean_b(buffer);
-						sprintf(buffer, "REQ_OP = DELETE_BID ON %ld \n", item[choix_item-1].uid);
+						sprintf(buffer, "REQ_OP = DELETE_BID ON %ld \n", item[choix_item-1].uid);  //formatage de la requête
 						send_socket(client, buffer);
 						debugm(buffer);
 						rcv_socket(client, buffer); // réception
 						debugm("BUFFER:");
 						debugm(buffer);
-						if(strncmp("OP_OK", buffer,5) == 0) // s
+						if(strncmp("OP_OK", buffer,5) == 0) // si l'opération s'est bien déroulé.
 						{
-							printf("L'enchère a bien été supprimé\n");		
+							greenm("L'enchère a bien été supprimé\n");		
 						}
-						else if(strncmp("ERROR", buffer, 5) == 0)
+						else if(strncmp("ERROR", buffer, 5) == 0) // si on reçoit une erreur
 						{
 							echecm("Erreur reçu du serveur");
-							printf("%s", buffer);
+							printf(buffer);
 						}
 						else
 						{
@@ -234,7 +228,7 @@ while(1)
 					case 2:	// annuler l'ecnhère
 					{
 						clean_b(buffer);
-						sprintf(buffer, "REQ_OP = CANCEL_BID ON %ld \n", item[choix_item-1].uid);
+						sprintf(buffer, "REQ_OP = CANCEL_BID ON %ld \n", item[choix_item-1].uid);  //formatage de la requête
 						send_socket(client, buffer);
 						rcv_socket(client, buffer); // réception
 						debugm("BUFFER:");

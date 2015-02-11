@@ -1,15 +1,24 @@
+/* Projet Cbay BALBIANI Lorrain - Manavai TEIKITUHAAHAA */
+ /*
+  * cette fonction est appelé pour le mode vendeur
+  * il reçoit en paramètre une structure de type user_t et un
+  * pointeur sur un buffer qui sera utilisé pour former les requêtes
+  * et recevoir les réponse du serveur.
+  */
 state seller_mode(struct user_t * client, char * buffer)
 {
 	int choix = -1;
-	int choix_item = 0, choix_op = 0;
+	int choix_item = 0;
+	int choix_op = 0;
 	int index = 0;
+	
 	struct object_t vente[100];		// tableau des item vendu
 	struct object_t bid[100];		// tableau des ventes en cours
-	struct object_t new;
+	struct object_t new;			
 	
-	while(1)
+	while(1) // boucle infinie
 	{	
-		do
+		do // choix fonctionnalité
 		{
 			__fpurge(stdin);
 			printf("Que souhaitez-vous faire? \n");
@@ -21,7 +30,7 @@ state seller_mode(struct user_t * client, char * buffer)
 		}while((scanf("%d", &choix) != 1 ) || choix > 3 || choix < 0);
 		
 		
-		switch(choix) // selon le choix
+		switch(choix) // selon le choix de la fonctionnalité
 		{
 			case 0:
 				exit(SUCCESS);
@@ -31,9 +40,9 @@ state seller_mode(struct user_t * client, char * buffer)
 			{
 				debugm("Consultation de l'historique d'achat");
 				clean_b(buffer);
-				sprintf(buffer, "REQ_HIST_ITEM_BOUGHT = %ld \n", client->uid);
+				sprintf(buffer, "REQ_HIST_ITEM_BOUGHT = %ld \n", client->uid); // formatage de la requête
 				debugm(buffer);
-				send_socket(client, buffer); 
+				send_socket(client, buffer); //envoi de la requête
 				clean_b(buffer);
 				index = 0;
 				do // affichage des item vendu
@@ -279,18 +288,18 @@ state seller_mode(struct user_t * client, char * buffer)
 					new.url_image,
 					new.start_price,
 					new.quantity,
-					new.place);
+					new.place); // formatage de la requête
 				
 				debugm(buffer);
-				send_socket(client, buffer); clean_b(buffer);
-				rcv_socket(client, buffer); // réception
+				send_socket(client, buffer); clean_b(buffer); // envoi
+				rcv_socket(client, buffer); // réception de la réponse
 				debugm("BUFFER:");
 				debugm(buffer);
 				if(strcmp("ITEM_ADDED \n", buffer) == 0) // l'objet a bien été ajouté
 				{
 					greenm("L'enchère a bien été ajouté\n");		
 				}
-				else if(strncmp("ERROR", buffer, 5) == 0)
+				else if(strncmp("ERROR", buffer, 5) == 0) // erreur reçu
 				{
 					echecm("Erreur reçu du serveur");
 					printf(buffer);
@@ -301,7 +310,7 @@ state seller_mode(struct user_t * client, char * buffer)
 				break;
 			}	
 			
-			default:
+			default: // cas impossible mais prévu
 				errorm("Choix des fonctionnalités du mode vendeur\Exiting...");
 				exit(FAIL);
 		}

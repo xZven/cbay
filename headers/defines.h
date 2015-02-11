@@ -1,5 +1,7 @@
 #ifndef _HEADER_H_
 #define _HEADER_H_
+
+/* Projet Cbay BALBIANI Lorrain - Manavai TEIKITUHAAHAA */
 // CONSTANTES
 #define DEBUG_ON 1
 #define DEBUG_OFF 0

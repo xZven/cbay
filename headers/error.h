@@ -1,5 +1,4 @@
 /* Projet Cbay BALBIANI Lorrain - Manavai TEIKITUHAAHAA */
-/* Projet Cbay BALBIANI Lorrain - Manavai TEIKITUHAAHAA */
 /*
  *
  *

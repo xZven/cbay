@@ -1,3 +1,6 @@
+/* Projet Cbay BALBIANI Lorrain - Manavai TEIKITUHAAHAA */
+// bibliothèques
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -9,17 +12,18 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <stdio_ext.h>
 
+// 
 #include "../headers/defines.h"
 #include "../headers/struct.h"
+// fonctions de base du client
 #include "./fonctions/fonctionClient.c"
-
+// fonctions pour l'inscription et le choix du mode
 #include "./fonctions/sign_in.c"
 #include "./fonctions/sign_up.c"
 #include "./fonctions/mode.c"
-
+// fonction selon le mode choisi
 #include "./fonctions/admin_mode.c"
 #include "./fonctions/seller_mode.c"
 #include "./fonctions/buyer_mode.c"
@@ -30,13 +34,14 @@ int main(int argc, char * argv[])
 	// VARIABLES
 	
 	int choix = -1;
-	char buffer[1024];
+	char buffer[1024]; // buffer pour l'envoi et la réception des données
 	
-
+	
 	char * server_name;
 	struct hostent * hp;
 	struct sockaddr_in nom_svr;
-	struct user_t client;
+	
+	struct user_t client; // stockage des paramètres client(uid, login, password, socket de communication vers le serveur)
 
 	welcome_message(argc, argv);	
 	clean_b(buffer);
@@ -44,9 +49,10 @@ int main(int argc, char * argv[])
 	 // demande du serveur
 	do
 	{
-		__fpurge(stdin);
+		__fpurge(stdin); // nettoyage du buffer clavier
 		printf("Adresse du serveur: "); // ADRESSE DU SERVEUR
 	}while(scanf("%s", buffer) != 1);
+	
 	debugm(buffer);
 	
 	if((server_name = malloc(strlen(buffer))) == NULL)
@@ -109,12 +115,14 @@ int main(int argc, char * argv[])
 		case 0:
 			exit(SUCCESS);
 		case 1: // Connexion au serveur
+		{
 			debugm("Connexion au serveur");
 			req_connect(&client, buffer);
 			
 			break;
-			
+		}	
 		case 2: //Inscription puis connexion direct
+		{
 			debugm("Inscription sur le serveur");
 			if(req_sign_up(&client, buffer) == FAIL)
 			{
@@ -124,11 +132,14 @@ int main(int argc, char * argv[])
 			req_connect(&client, buffer);
 			
 			break;
+		}
 		default:
+		{
 			debugm("Choix de connexion par défaut");
 			errorm("Choix de connexion différent de 0|1|2");
 			exit(FAIL);
 			break;
+		}
 	}
 
  	// CHOIX DU MODE
@@ -137,7 +148,7 @@ int main(int argc, char * argv[])
  	 * Administrateur: Permet de gérer les objets vendus aux enchères
  	 */
 	
-	req_mode(&client, buffer); 
+	req_mode(&client, buffer); 		// choix du mode
 	if(client.mode == 'b') 			// SI MODE ACHETEUR
 	{
 		buyer_mode(&client, buffer);
@@ -162,5 +173,5 @@ int main(int argc, char * argv[])
 	// FERMETURE DES CONNEXIONS ET LIBERATIONS DES RESSOURCES
 	close(client.socket_fd);
 	free(server_name);
-	return 0;
+	return SUCCESS;
 }

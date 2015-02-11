@@ -1,32 +1,41 @@
 /* Projet Cbay BALBIANI Lorrain - Manavai TEIKITUHAAHAA */
 
 /* AFFICHAGE CONSOLE */
+/*
+ * Ces fonctions recevoit en paramètres le message qui sera affiché dans la sortie standard
+ */
 
+// affichage des info
 void info(const char * info_msg)
 {
 	printf("%s: %s\n", INFO, info_msg);
 }
 
+// affichage des message de débuggage si le mode est activé
 void debugm(const char * debug_msg)
 {
 	printf("%s: %s\n", DEBUG_MSG, debug_msg);
 }
 
+// affichage des warnings
 void warm(const char * war_msg)
 {
 	printf("%s: %s\n", WAR, war_msg);
 }
 
+// affichage des echecs
 void errorm(const char * error_msg)
 {
 	printf("%s: %s  %s\n", ERROR, error_msg, strerror(errno));
 }
 
+// affichage des echecs
 void echecm(const char * echec_msg)
 {
 	printf("\n%s: %s\n", ECHEC, echec_msg);
 }
 
+// affichage en vert
 void greenm(const char * green_msg)
 {
 	printf("%s%s%s\n", GREEN, green_msg, NORM);
@@ -271,11 +280,12 @@ void shut_server(struct server_t * server)
 
 
 /* FONCTIONS DE CODAGE ET DECODAGE DES LIGNES DES FICHIERS */
+// fonction pour faciliter les gestion des contenues du fichier
 bool decode_user(struct user_t * client, char * ligne)
 {
 	int n;
 	
-	n = sscanf(ligne, "%ld %s %s %d %ld\n", &client->uid, client->login, client->password, &client->admin, &client->last_connect);
+	n = sscanf(ligne, "%ld %s %s %d %ld \n", &client->uid, client->login, client->password, &client->admin, &client->last_connect);
 	if(n == 5)  // OK
 		return TRUE;
 	else		// !OK

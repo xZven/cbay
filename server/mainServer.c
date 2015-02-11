@@ -1,3 +1,5 @@
+/* Projet Cbay BALBIANI Lorrain - Manavai TEIKITUHAAHAA */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -16,6 +18,7 @@
 #include "../headers/defines.h"
 #include "../headers/struct.h"
 
+// fonction serveur et des requêtes
 #include "./fonctions/server_f.c"
 #include "./fonctions/log_f.c"
 #include "./fonctions/req_f.c"
@@ -73,7 +76,7 @@ int main (int argc, char * argv[])
 	if(client.socket_fd == -1)
 	{
 		errorm("Impossible d'accepter une connexion sur le socket\nExiting...");
-		exit(-1);
+		exit(FAIL);
 	}
 	
 	greenm("*** CONNECTED TO CLIENT ***\n");
@@ -82,8 +85,12 @@ int main (int argc, char * argv[])
 		{
 			//expire_time(&client, &server);
 			clean_b(buffer);	
-			rcv_socket(&client, buffer);
-			if(0)
+			rcv_socket(&client, buffer); // en attente de réception de requête lors de la connexion d'un client
+/*
+ * lorsque le serveur reçoit une requête, il regarde le contenue de l'intitulé de la requête
+ * et appelle la fonction correspondante.
+ */
+			if(0) // SI FALSE
 			{
 			}
 			else if(strncmp(buffer, "REQ_VERIFY_LOGIN", 	13) == 0)

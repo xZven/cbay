@@ -1,9 +1,17 @@
+/* Projet Cbay BALBIANI Lorrain - Manavai TEIKITUHAAHAA */
+ /*
+  * cette fonction permet de se connecter à un server d'enchère
+  * il reçoit en paramètre une structure de type user_t et un
+  * pointeur sur un buffer qui sera utilisé pour former les requêtes
+  * et recevoir les réponse du serveur.
+  */
 state req_connect(struct user_t * client, char * buffer)
 {
 	int tentative = 0;
 
 	do
 	{
+		// demande des identifiants
 		greenm("\nConnexion:\n");
 		printf("\tLogin: ");
 		scanf("%s", client->login);
@@ -15,13 +23,9 @@ state req_connect(struct user_t * client, char * buffer)
 		sprintf(buffer, "REQ_CONNECT = %s + %s \n", client->login, client->password);
 		send_socket(client, buffer);
 	
-		if(rcv_socket(client, buffer) == -1)
-		{
-			errorm("Erreur lors de la réception");
-			return FAIL;
-		}
+		rcv_socket(client, buffer); // réception de la réponse
 		
-		if(strncmp(buffer, "USER_CONNECTED", 14) == 0)
+		if(strncmp(buffer, "USER_CONNECTED", 14) == 0) // si la connexion a bien aboutit
 		{	
 			sscanf(buffer, "USER_CONNECTED = %ld \n", &client->uid);
 			clean_b(buffer);
