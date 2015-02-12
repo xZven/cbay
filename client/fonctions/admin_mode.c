@@ -122,7 +122,7 @@ while(1)
 			}
 			break;
 		}
-		case 2: // gstion des ventes
+		case 2: // gestion des ventes
 		{
 			printf("\n\nGestion des Enchères\n");
 			
@@ -137,7 +137,8 @@ while(1)
 						if(strcmp("END_ITEM \n", buffer) == 0) // si c'est la fin de l'affichage
 						{
 							printf("\nFIN D'AFFICHAGE\n");
-							index--;
+							if(index > 0)
+								index--;
 							break;
 						}
 						else if(strncmp("ERROR", buffer, 5) == 0) // si on reçois un erreur

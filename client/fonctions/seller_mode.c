@@ -40,7 +40,7 @@ state seller_mode(struct user_t * client, char * buffer)
 			{
 				debugm("Consultation de l'historique d'achat");
 				clean_b(buffer);
-				sprintf(buffer, "REQ_HIST_ITEM_BOUGHT = %ld \n", client->uid); // formatage de la requête
+				sprintf(buffer, "REQ_ITEM_SOLD = %ld \n", client->uid); // formatage de la requête
 				debugm(buffer);
 				send_socket(client, buffer); //envoi de la requête
 				clean_b(buffer);

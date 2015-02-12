@@ -127,14 +127,8 @@ state req_connect(struct user_t * client,  struct server_t * server, char * buff
 	while(fgets(ligne, sizeof(ligne), server->auth_file) != NULL)
 	{
 		debugm(ligne);
-		if(decode_user(&temp_client, ligne) == FAIL)
-		{
-			errorm("Erreur de récupération des termes de la ligne");
-			error_msg(client, "0x010");
-			return FAIL;
-		}
-		else
-		{	
+		decode_user(&temp_client, ligne);
+		
 		 	if(strcmp(client->login,temp_client.login) == 0)
 			{
 				if(strcmp(client->password, temp_client.password) == 0)
@@ -191,7 +185,7 @@ state req_connect(struct user_t * client,  struct server_t * server, char * buff
 			}
 			else 
 				fputs(ligne, temp_file);
-		}
+		
 	}
 	
 	info("Connection non-aboutie");
@@ -848,6 +842,7 @@ state req_hist_item_bought(struct user_t * client, struct server_t * server, cha
 ///////////////////******************///////////////
 state req_bid_user(struct user_t * client, struct server_t * server, char * buffer)
 {
+	send_socket(client, "END_ITEM \n");
 	clean_b(buffer);
 	return SUCCESS;
 }
@@ -1055,9 +1050,9 @@ state req_bid_price(struct user_t * client, struct server_t * server, char * buf
 				temp_item.acheteur = client->uid;
 				
 				encode_item(client, &temp_item, ligne);
-				fseek(server->object_file, - strlen(ligne), SEEK_CUR);
-				fputs(ligne, server->object_file);
-				break;
+				fseek(server->object_file, -(strlen(ligne)), SEEK_CUR); // on recule le curseur de la taille de la ligne 
+				fputs(ligne, server->object_file); // on écrase la ligne de l'item
+				break; // on quitte la boucle
 			}		
 		}
 		else
@@ -1067,7 +1062,7 @@ state req_bid_price(struct user_t * client, struct server_t * server, char * buf
 	}
 	
 	clean_b(buffer);
-	send_socket(client, "BID_OK \n");
-	rewind(server->object_file);
+	send_socket(client, "BID_OK \n"); // envoi de la réponse
+	rewind(server->object_file); // reset file
 	return SUCCESS;
  }
