@@ -69,7 +69,7 @@ while(1)
 				else
 				{
 				
-					if(sscanf(buffer, "ITEM = %ld + %51[A-Za-z0123456789 ] + %51[A-Za-z ] + %f + %f + %d \n",
+					if(sscanf(buffer, "ITEM = %ld + %51[^+] + %51[^+] + %f + %f + %d \n",
 							&achat[index].uid,
 							achat[index].name,
 							achat[index].category,

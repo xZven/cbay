@@ -813,21 +813,21 @@ state req_hist_item_bought(struct user_t * client, struct server_t * server, cha
 			
 			if((temp_item.acheteur == client->uid)&&(temp_item.final_price > 0))  // IF CLIENT -> ITEM
 			{
-				sprintf(buffer, "ITEM = %ld %s %s %f %f %f %d \n" , 
+				sprintf(buffer, "ITEM = %ld + %s + %s + %f + %f + %d \n" , 
 				temp_item.uid,
 				temp_item.name,
 				temp_item.category,
 				temp_item.start_price,
-				temp_item.temp_price,
 				temp_item.final_price,
 				temp_item.quantity);						 // FORMAT
-			
+			usleep(10000);
 			send_socket(client, buffer);					 // SEND			
 			clean_b(buffer);								 // CLEAN BUFFER
 			
 			}
 		}
 		
+		usleep(10000);
 		sprintf(buffer, "END_ITEM \n");
 		send_socket(client, buffer);					 		 // SEND
 		clean_b(buffer);								 	 	 // CLEAN BUFFER

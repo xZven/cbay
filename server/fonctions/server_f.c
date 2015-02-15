@@ -395,6 +395,9 @@ bool encode_log(struct log_t * event, struct server_t * server)
 /*
 	Si l'enchère a expiré, la fonction marque le prix final comme égal au dernier enchère sur l'objet
 	ou s'il n'y a pas eu d'enchère marque le vendeur comme acheteur.
+	
+	Elle est pour le moment désactivé dans le programme car elle entraine des erreurs qui même à la
+	suppresion de tous les fichiers.
 */
 void expire_time(struct user_t * client, struct server_t * server)
 {

@@ -15,8 +15,8 @@ while(1)
 	do
 	{
 		printf("Que voulez-vous faire ?\n"); // CHOIX DU MODE
-			printf("\t 1 - Gérer les utilisateurs \n");
-			printf("\t 2 - Gérer les ventes(supprimer/annuler une vente \n");
+			printf("\t 1 - Gérer les utilisateurs\n");
+			printf("\t 2 - Gérer les ventes(supprimer/annuler une vente)\n");
 			printf("\t 0 - Quitter le programme \n");
 		printf("Choix[1|2|0]: ");
 		__fpurge(stdin);
@@ -179,15 +179,15 @@ while(1)
 				{
 					__fpurge(stdin);
 					printf("Numéro d'item [1 - %d]: ", index + 1);
-				}while((scanf("%d", &choix_item) != 1) || (choix_item > index + 1) || (choix_item <= 0));
+				}while((scanf("%d", &choix_item) != 1) || (choix_item > index + 1) || (choix_item < 0));
 				
 				do // choix de l'opération
 				{
 						__fpurge(stdin);
 					printf("Que voules-vous faire ?\n");
 					
-					printf("1 - Supprimer l'enchère \n");
-					greenm("Permet de supprimer une enchère en cours.\nL’objet sera supprimé du serveur.\n");
+					printf("1 - Supprimer l'objet \n");
+					greenm("Permet de supprimer une enchère en cours ou un objet du serveur\n");
 					
 					printf("2 - Annuler l'enchère \n");
 					greenm("Permet d’annuler une enchère.\nTous les compteurs de l’objet seront remis à zéro.\n");

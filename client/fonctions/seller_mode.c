@@ -40,7 +40,7 @@ state seller_mode(struct user_t * client, char * buffer)
 			{
 				debugm("Consultation de l'historique d'achat");
 				clean_b(buffer);
-				sprintf(buffer, "REQ_ITEM_SOLD = %ld \n", client->uid); // formatage de la requête
+				sprintf(buffer, "REQ_ITEM_SOLD = %s\n", client->login); // formatage de la requête
 				debugm(buffer);
 				send_socket(client, buffer); //envoi de la requête
 				clean_b(buffer);
@@ -65,7 +65,7 @@ state seller_mode(struct user_t * client, char * buffer)
 					else
 					{
 					
-						if(sscanf(buffer, "ITEM = %ld + %51[A-Za-z0123456789 ] + %51[A-Za-z ] + %f + %f + %d \n",
+						if(sscanf(buffer, "ITEM = %ld + %51[^+] + %51[^+] + %f + %f + %d \n",
 							&vente[index].uid,
 							vente[index].name,
 							vente[index].category,
@@ -79,12 +79,12 @@ state seller_mode(struct user_t * client, char * buffer)
 						
 						
 						printf("%d - \tUID:%ld\n\tNom: %s\n\tCatégorie: %s\n\tPrix de départ: %f Euro\n\tDernier enchère: %f Euro\n\tQuantité: %d\n\n", index + 1,
-							bid[index].uid,
-							bid[index].name,
-							bid[index].category,
-							bid[index].start_price,
-							bid[index].final_price,
-							bid[index].quantity);
+							vente[index].uid,
+							vente[index].name,
+							vente[index].category,
+							vente[index].start_price,
+							vente[index].final_price,
+							vente[index].quantity);
 						index++;
 					}
 						
@@ -146,7 +146,7 @@ state seller_mode(struct user_t * client, char * buffer)
 				{
 					__fpurge(stdin);
 					printf("Numéro d'item [1 - %d]: ", index + 1);
-				}while((scanf("%d", &choix_item) != 1) || (choix_item > index + 1) || (choix_item <= 0));
+				}while((scanf("%d", &choix_item) != 1) || (choix_item > index + 1) || (choix_item < 0));
 				
 				do // choix de l'opération
 				{
@@ -264,7 +264,7 @@ state seller_mode(struct user_t * client, char * buffer)
 				
 					do // Prix
 					{
-						printf("Prix (tous le lot): ");
+						printf("Prix (tout le lot): ");
 						__fpurge(stdin);
 					}while(scanf("%f", &new.start_price)!=1);
 				
